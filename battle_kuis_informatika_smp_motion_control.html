@@ -1,0 +1,3111 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Battle Kuis Informatika SMP - Gesture & Motion Control</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; font-family: 'Inter', sans-serif; user-select: none; }
+    html, body { margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background: #020617; color: #f8fafc; }
+    #cameraVideo { transform: scaleX(-1); object-fit: cover; }
+    @keyframes teamShake {
+      0%, 100% { transform: translate(0, 0); }
+      20% { transform: translate(-8px, 4px); }
+      40% { transform: translate(8px, -4px); }
+      60% { transform: translate(-6px, -3px); }
+      80% { transform: translate(6px, 3px); }
+    }
+    .shake-effect { animation: teamShake 0.35s ease-in-out; }
+    @keyframes scorePulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.22); }
+      100% { transform: scale(1); }
+    }
+    .score-pulse { animation: scorePulse 0.35s ease-out; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 999px; }
+  </style>
+</head>
+<body class="flex flex-col w-screen h-screen overflow-hidden bg-slate-950 text-slate-100">
+
+  <!-- Banner Error Ramah jika ada kendala runtime -->
+  <div id="globalErrorBanner" class="hidden fixed top-2 left-1/2 -translate-x-1/2 z-[100] max-w-xl w-[92vw] bg-rose-950/95 border-2 border-rose-500 text-rose-100 px-4 py-3 rounded-2xl shadow-2xl text-xs flex items-center justify-between gap-3">
+    <span id="globalErrorText">Terjadi kendala teknis ringan.</span>
+    <button id="btnCloseErrorBanner" type="button" class="px-2.5 py-1 rounded-lg bg-rose-800 hover:bg-rose-700 font-bold">Tutup</button>
+  </div>
+
+  <!-- =====================================================================
+       1. PANEL KONTROL / FORM ATAS (DAPAT DILIPAT)
+       ===================================================================== -->
+  <header id="topControlWrapper" class="z-30 w-full bg-slate-900/95 border-b border-indigo-500/40 shadow-2xl backdrop-blur-md transition-all">
+    <!-- Bar Utama Selalu Terlihat -->
+    <div class="flex flex-wrap items-center justify-between gap-1.5 px-3 py-2 bg-slate-950/80 border-b border-slate-800">
+      <div class="flex items-center gap-2">
+        <span class="text-xl">⚡</span>
+        <div>
+          <h1 class="text-sm sm:text-base font-extrabold tracking-tight bg-gradient-to-r from-cyan-400 via-indigo-400 to-fuchsia-400 bg-clip-text text-transparent">
+            BATTLE KUIS INFORMATIKA SMP
+          </h1>
+          <p class="text-[11px] text-slate-400 hidden sm:block">Motion Control Gesture &amp; Multi-Team Arena</p>
+        </div>
+      </div>
+
+      <!-- Tombol Kontrol Cepat -->
+      <div class="flex flex-wrap items-center gap-1.5">
+        <button id="btnStartGame" type="button" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-extrabold text-xs sm:text-sm shadow-lg shadow-emerald-500/20 active:scale-95 transition">
+          ▶ Mulai Game
+        </button>
+        <button id="btnPauseResume" type="button" disabled class="px-2.5 py-1.5 rounded-xl bg-amber-500/20 border border-amber-400/50 text-amber-300 hover:bg-amber-500/30 disabled:opacity-40 font-bold text-xs transition">
+          ⏸ Jeda
+        </button>
+        <button id="btnRestartGame" type="button" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold text-xs transition">
+          🔄 Ulangi
+        </button>
+        <button id="btnNextQuestion" type="button" disabled class="px-2.5 py-1.5 rounded-xl bg-indigo-500/20 border border-indigo-400/50 text-indigo-300 hover:bg-indigo-500/30 disabled:opacity-40 font-bold text-xs transition">
+          ⏭ Lewati
+        </button>
+
+        <!-- Popup 1: Kecepatan Balon -->
+        <div class="relative">
+          <button id="btnSpeedPopup" type="button" class="px-2.5 py-1.5 rounded-xl bg-amber-500/20 border border-amber-400/50 text-amber-200 hover:bg-amber-500/30 font-bold text-xs transition">
+            🎈 Kecepatan Balon
+          </button>
+          <div id="popupSpeedPanel" class="hidden fixed sm:absolute top-12 sm:top-full right-2 sm:right-auto sm:left-0 mt-1.5 w-[92vw] max-w-xs bg-slate-900/95 border-2 border-amber-400/80 rounded-2xl p-3.5 shadow-2xl z-50 backdrop-blur-md text-xs space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-700 pb-2">
+              <span class="font-extrabold text-amber-300 text-sm">🎈 Kecepatan Turun Balon</span>
+              <button type="button" class="close-popup-btn text-slate-400 hover:text-white font-bold px-2 py-0.5 rounded-lg hover:bg-slate-800">✕</button>
+            </div>
+            <div>
+              <div class="flex justify-between mb-1">
+                <span class="text-slate-300 font-semibold">Tingkat Kecepatan:</span>
+                <span id="labelSpeedPopup" class="text-amber-300 font-extrabold">2 - Sedang</span>
+              </div>
+              <input id="sliderSpeedPopup" type="range" min="1" max="5" step="1" value="2" class="w-full accent-amber-400 cursor-pointer" />
+              <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+                <span>1 Lambat</span>
+                <span>2 Sedang</span>
+                <span>3 Cepat</span>
+                <span>4 Sg.Cepat</span>
+                <span>5 Kilat</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Popup 2: Ukuran Balon -->
+        <div class="relative">
+          <button id="btnBalloonSizePopup" type="button" class="px-2.5 py-1.5 rounded-xl bg-sky-500/20 border border-sky-400/50 text-sky-200 hover:bg-sky-500/30 font-bold text-xs transition">
+            🔵 Ukuran Balon
+          </button>
+          <div id="popupBalloonSizePanel" class="hidden fixed sm:absolute top-12 sm:top-full right-2 sm:right-auto sm:left-0 mt-1.5 w-[92vw] max-w-sm max-h-[82vh] overflow-y-auto bg-slate-900/95 border-2 border-sky-400/80 rounded-2xl p-3.5 shadow-2xl z-50 backdrop-blur-md text-xs space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-700 pb-2">
+              <span class="font-extrabold text-sky-300 text-sm">🔵 Pengaturan Ukuran Balon</span>
+              <button type="button" class="close-popup-btn text-slate-400 hover:text-white font-bold px-2 py-0.5 rounded-lg hover:bg-slate-800">✕</button>
+            </div>
+
+            <div>
+              <div class="flex justify-between items-center mb-1.5">
+                <span class="text-slate-300 font-semibold">Pilihan Cepat:</span>
+                <span id="sizePresetBadge" class="px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-bold">Besar</span>
+              </div>
+              <div class="grid grid-cols-4 gap-1.5">
+                <button type="button" data-size-preset="kecil" class="size-preset-btn py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 font-bold">Kecil</button>
+                <button type="button" data-size-preset="sedang" class="size-preset-btn py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 font-bold">Sedang</button>
+                <button type="button" data-size-preset="besar" class="size-preset-btn py-1.5 rounded-lg bg-sky-600/30 border-2 border-sky-400 text-white font-bold">Besar</button>
+                <button type="button" data-size-preset="jumbo" class="size-preset-btn py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 font-bold">Jumbo</button>
+              </div>
+            </div>
+
+            <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 space-y-1">
+              <div class="flex justify-between">
+                <span class="text-slate-300 font-semibold">Ukuran Manual (Radius):</span>
+                <span id="labelBalloonRadiusPx" class="text-sky-300 font-extrabold">100 px</span>
+              </div>
+              <input id="sliderBalloonRadius" type="range" min="50" max="140" step="5" value="100" class="w-full accent-sky-400 cursor-pointer" />
+            </div>
+
+            <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 space-y-1">
+              <div class="flex justify-between">
+                <span class="text-slate-300 font-semibold">Area Sentuh (Hitbox):</span>
+                <span id="labelHitboxPct" class="text-emerald-300 font-extrabold">115%</span>
+              </div>
+              <input id="sliderHitboxMult" type="range" min="100" max="150" step="5" value="115" class="w-full accent-emerald-400 cursor-pointer" />
+              <p class="text-[10px] text-slate-400">Makin besar, makin mudah disentuh tangan.</p>
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="flex items-center justify-between bg-slate-950/80 border border-slate-800 rounded-xl p-2 cursor-pointer">
+                <span class="font-semibold text-slate-200">Ukuran Otomatis Menyesuaikan Teks (+25%)</span>
+                <input id="toggleAutoTextSize" type="checkbox" checked class="w-4 h-4 accent-sky-400 cursor-pointer" />
+              </label>
+              <label class="flex items-center justify-between bg-slate-950/80 border border-slate-800 rounded-xl p-2 cursor-pointer">
+                <span class="font-semibold text-slate-200">Variasi Ukuran Acak (±10%)</span>
+                <input id="toggleRandomSizeVar" type="checkbox" class="w-4 h-4 accent-sky-400 cursor-pointer" />
+              </label>
+            </div>
+
+            <div>
+              <div class="flex justify-between items-center text-[11px] text-slate-400 mb-1">
+                <span>Pratinjau Ukuran &amp; Hitbox:</span>
+                <span id="previewFitWarning" class="hidden text-amber-300 font-bold">⚠️ Ukuran diperkecil agar muat</span>
+              </div>
+              <canvas id="balloonPreviewCanvas" width="320" height="110" class="w-full h-[110px] rounded-xl bg-slate-950 border border-slate-700 block"></canvas>
+            </div>
+
+            <div class="flex justify-end pt-0.5">
+              <button id="btnResetBalloonSize" type="button" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold transition">
+                ↺ Kembalikan Default
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Popup 3: Gerak Bebas (Dua Fase: Melayang -> Turun) -->
+        <div class="relative">
+          <button id="btnGerakBebasPopup" type="button" class="px-2.5 py-1.5 rounded-xl bg-fuchsia-500/20 border border-fuchsia-400/50 text-fuchsia-200 hover:bg-fuchsia-500/30 font-bold text-xs transition flex items-center gap-1">
+            🌀 Gerak Bebas
+          </button>
+          <div id="popupGerakBebasPanel" class="hidden fixed sm:absolute top-12 sm:top-full right-2 sm:right-auto sm:left-0 mt-1.5 w-[94vw] max-w-md max-h-[82vh] overflow-y-auto bg-slate-900/95 border-2 border-fuchsia-400/80 rounded-2xl p-3.5 shadow-2xl z-50 backdrop-blur-xl text-xs space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-700/80 pb-2">
+              <span class="font-extrabold text-fuchsia-300 text-sm">🌀 Pengaturan Gerak Bebas Balon</span>
+              <button type="button" class="close-popup-btn text-slate-400 hover:text-white font-bold px-2 py-0.5 rounded-lg hover:bg-slate-800 transition">✕</button>
+            </div>
+
+            <label class="flex items-center justify-between bg-slate-950/80 border border-slate-800 rounded-xl p-2.5 cursor-pointer">
+              <div>
+                <div class="font-bold text-white">Aktifkan Fase Gerak Bebas</div>
+                <div class="text-[10px] text-slate-400">Balon melayang &amp; memantul dulu sebelum mulai turun</div>
+              </div>
+              <input id="toggleGerakBebasAktif" type="checkbox" checked class="w-4 h-4 accent-fuchsia-500 cursor-pointer" />
+            </label>
+
+            <div id="gerakBebasControlsWrap" class="space-y-3 transition-opacity">
+              <div class="space-y-1.5">
+                <label class="block text-slate-300 font-semibold">Mode Durasi Melayang:</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <button type="button" data-gb-mode="otomatis" class="gb-mode-btn px-2.5 py-2 rounded-xl bg-fuchsia-600/30 border-2 border-fuchsia-400 text-white font-bold text-center transition">
+                    Otomatis (% Waktu Soal)
+                  </button>
+                  <button type="button" data-gb-mode="manual" class="gb-mode-btn px-2.5 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 font-bold text-center transition">
+                    Manual (Detik)
+                  </button>
+                </div>
+              </div>
+
+              <div id="gbAutoSliderBox" class="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 space-y-1">
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-300 font-semibold">Persentase Gerak Bebas:</span>
+                  <span id="labelGbPersen" class="text-fuchsia-300 font-extrabold">40% (= 8 dtk dari 20 dtk)</span>
+                </div>
+                <input id="sliderGbPersen" type="range" min="10" max="80" step="5" value="40" class="w-full accent-fuchsia-400 cursor-pointer" />
+              </div>
+
+              <div id="gbManualSliderBox" class="hidden bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 space-y-1">
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-300 font-semibold">Durasi Manual (sisakan min. 5 dtk turun):</span>
+                  <span id="labelGbManualDetik" class="text-fuchsia-300 font-extrabold">8 detik</span>
+                </div>
+                <input id="sliderGbManualDetik" type="range" min="0" max="30" step="1" value="8" class="w-full accent-fuchsia-400 cursor-pointer" />
+              </div>
+
+              <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 space-y-1">
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-300 font-semibold">Kecepatan Gerak Bebas:</span>
+                  <span id="labelGbSpeed" class="text-cyan-300 font-extrabold">2 - Sedang</span>
+                </div>
+                <input id="sliderGbSpeed" type="range" min="1" max="5" step="1" value="2" class="w-full accent-cyan-400 cursor-pointer" />
+              </div>
+
+              <div class="space-y-1.5">
+                <label class="block text-slate-300 font-semibold">Pola Gerak Melayang:</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <button type="button" data-gb-pola="acak" class="gb-pola-card p-2 rounded-xl bg-fuchsia-600/30 border-2 border-fuchsia-400 text-left transition">
+                    <div class="font-extrabold text-white text-xs">🌊 Melayang Acak</div>
+                    <div class="text-[10px] text-fuchsia-200">Arah &amp; laju berubah lembut alami</div>
+                  </button>
+                  <button type="button" data-gb-pola="kanan_kiri" class="gb-pola-card p-2 rounded-xl bg-slate-800/90 border border-slate-700 hover:border-slate-500 text-left transition">
+                    <div class="font-extrabold text-slate-200 text-xs">↔️ Kanan-Kiri</div>
+                    <div class="text-[10px] text-slate-400">Menyapu horizontal kiri &amp; kanan</div>
+                  </button>
+                  <button type="button" data-gb-pola="angka_delapan" class="gb-pola-card p-2 rounded-xl bg-slate-800/90 border border-slate-700 hover:border-slate-500 text-left transition">
+                    <div class="font-extrabold text-slate-200 text-xs">♾️ Angka Delapan</div>
+                    <div class="text-[10px] text-slate-400">Lintasan kurva lemniscate mulus</div>
+                  </button>
+                  <button type="button" data-gb-pola="memantul" class="gb-pola-card p-2 rounded-xl bg-slate-800/90 border border-slate-700 hover:border-slate-500 text-left transition">
+                    <div class="font-extrabold text-slate-200 text-xs">🏓 Memantul</div>
+                    <div class="text-[10px] text-slate-400">Laju konstan seperti bola biliar</div>
+                  </button>
+                </div>
+              </div>
+
+              <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 space-y-1">
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-300 font-semibold">Jangkauan Vertikal Melayang:</span>
+                  <span id="labelGbVertikal" class="text-amber-300 font-extrabold">25% tinggi area</span>
+                </div>
+                <input id="sliderGbVertikal" type="range" min="0" max="60" step="5" value="25" class="w-full accent-amber-400 cursor-pointer" />
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <label class="flex items-center justify-between bg-slate-950/80 border border-slate-800 rounded-xl p-2 cursor-pointer">
+                  <span class="text-[11px] font-semibold text-slate-200">⏱️ Hitung Mundur Fase</span>
+                  <input id="toggleGbHitungMundur" type="checkbox" checked class="w-4 h-4 accent-fuchsia-500 cursor-pointer" />
+                </label>
+                <label class="flex items-center justify-between bg-slate-950/80 border border-slate-800 rounded-xl p-2 cursor-pointer">
+                  <span class="text-[11px] font-semibold text-slate-200">🔔 Peringatan Turun</span>
+                  <input id="toggleGbPeringatan" type="checkbox" checked class="w-4 h-4 accent-fuchsia-500 cursor-pointer" />
+                </label>
+              </div>
+
+              <div class="space-y-1">
+                <div class="flex justify-between items-center text-[11px] text-slate-400">
+                  <span>Pratinjau Langsung (4 Balon Memantul &amp; Turun):</span>
+                  <span id="previewGbStatusBadge" class="px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-bold">Fase 1: Melayang</span>
+                </div>
+                <canvas id="gerakBebasPreviewCanvas" width="380" height="115" class="w-full h-[115px] rounded-xl bg-slate-950 border border-slate-700/80 block"></canvas>
+              </div>
+            </div>
+
+            <div class="flex justify-end pt-1 border-t border-slate-800">
+              <button id="btnResetGerakBebas" type="button" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold transition">
+                ↺ Kembalikan Default
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <button id="btnToggleCam" type="button" class="px-2.5 py-1.5 rounded-xl bg-cyan-500/20 border border-cyan-400/50 text-cyan-300 hover:bg-cyan-500/30 font-bold text-xs transition" title="Hidup/Matikan Kamera">
+          📷 Kamera: Off
+        </button>
+        <button id="btnToggleMouseMode" type="button" class="px-2.5 py-1.5 rounded-xl bg-purple-500/20 border border-purple-400/50 text-purple-300 hover:bg-purple-500/30 font-bold text-xs transition" title="Cadangan tanpa kamera">
+          🖱️ Mode Mouse: Off
+        </button>
+        <button id="btnToggleSkeleton" type="button" class="px-2.5 py-1.5 rounded-xl bg-slate-800 border border-slate-600 text-slate-300 hover:bg-slate-700 font-bold text-xs transition" title="Tampilkan titik sendi tangan">
+          🖐️ Titik: Off
+        </button>
+        <button id="btnToggleMute" type="button" class="px-2.5 py-1.5 rounded-xl bg-slate-800 border border-slate-600 text-slate-300 hover:bg-slate-700 font-bold text-xs transition" title="Bisukan/Aktifkan Suara">
+          🔊 Suara
+        </button>
+        <button id="btnFullscreen" type="button" class="px-2.5 py-1.5 rounded-xl bg-slate-800 border border-slate-600 text-slate-300 hover:bg-slate-700 font-bold text-xs transition" title="Layar Penuh">
+          ⛶ Layar Penuh
+        </button>
+        <button id="btnTogglePanel" type="button" class="px-2.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow transition">
+          ▲ Sembunyikan Panel
+        </button>
+      </div>
+    </div>
+
+    <!-- Isi Panel Form yang Bisa Dilipat -->
+    <div id="collapsiblePanelBody" class="max-h-[62vh] overflow-y-auto px-3 py-3 space-y-3 bg-slate-900/95">
+      <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2.5 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1">Mata Pelajaran</label>
+          <input id="inputMapel" type="text" value="Informatika" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white focus:border-cyan-400 outline-none" />
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Topik Materi</label>
+          <select id="inputTopik" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white focus:border-cyan-400 outline-none">
+            <option value="Berpikir Komputasional">Berpikir Komputasional</option>
+            <option value="Jaringan Komputer dan Internet">Jaringan Komputer &amp; Internet</option>
+            <option value="Algoritma dan Pemrograman">Algoritma &amp; Pemrograman</option>
+            <option value="Analisis Data">Analisis Data</option>
+            <option value="Sistem Komputer">Sistem Komputer</option>
+            <option value="Dampak Sosial Informatika">Dampak Sosial Informatika</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Kelas SMP</label>
+          <select id="inputKelas" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white focus:border-cyan-400 outline-none">
+            <option value="7">Kelas 7 SMP</option>
+            <option value="8" selected>Kelas 8 SMP</option>
+            <option value="9">Kelas 9 SMP</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Tingkat Kesulitan</label>
+          <select id="inputKesulitan" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white focus:border-cyan-400 outline-none">
+            <option value="Mudah">Mudah</option>
+            <option value="Sedang" selected>Sedang</option>
+            <option value="Sulit">Sulit</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Jumlah Soal (3-30)</label>
+          <input id="inputJumlahSoal" type="number" min="3" max="30" value="10" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white focus:border-cyan-400 outline-none" />
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Waktu / Soal (detik)</label>
+          <input id="inputWaktuSoal" type="number" min="5" max="120" value="20" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-white focus:border-cyan-400 outline-none" />
+        </div>
+      </div>
+
+      <!-- Baris Nama Tim & Pengaturan Cepat Gerak Bebas -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-2.5 text-xs">
+        <div class="grid grid-cols-2 gap-2 bg-slate-950/70 border border-slate-800 rounded-xl p-2.5">
+          <div>
+            <label class="block text-cyan-300 font-bold mb-1">🔵 Nama Tim 1 (Kiri)</label>
+            <input id="inputTeam1Name" type="text" value="Tim Cyber" maxlength="18" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-cyan-500/40 text-white focus:border-cyan-400 outline-none" />
+          </div>
+          <div>
+            <label class="block text-orange-300 font-bold mb-1">🟠 Nama Tim 2 (Kanan)</label>
+            <input id="inputTeam2Name" type="text" value="Tim Algo" maxlength="18" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-orange-500/40 text-white focus:border-orange-400 outline-none" />
+          </div>
+        </div>
+
+        <div class="bg-slate-950/70 border border-fuchsia-500/30 rounded-xl p-2.5 flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">🌀</span>
+            <div>
+              <div class="font-bold text-fuchsia-300 text-xs">Fase Gerak Bebas Balon (Sebelum Turun)</div>
+              <div id="mainPanelGbSummary" class="text-[11px] text-slate-400">Aktif: Melayang &amp; memantul 8 dtk (acak), lalu turun</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800">
+            <button type="button" data-gb-quick="on" class="gb-quick-pill px-2.5 py-1 rounded-lg bg-fuchsia-600 text-white font-bold text-xs shadow transition">
+              🌀 ON
+            </button>
+            <button type="button" data-gb-quick="off" class="gb-quick-pill px-2.5 py-1 rounded-lg text-slate-400 hover:text-white font-bold text-xs transition">
+              ⬇️ Turun Langsung
+            </button>
+            <button id="btnOpenGbFromMain" type="button" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-fuchsia-200 font-bold text-xs transition">
+              ⚙️ Atur Pola
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Cara Input Soal & Pratinjau Daftar Soal -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 text-xs">
+        <div class="lg:col-span-6 bg-slate-950/80 border border-slate-800 rounded-xl p-2.5 space-y-2">
+          <div class="flex flex-wrap gap-1.5 border-b border-slate-800 pb-2">
+            <button type="button" data-tab="ai" class="tab-source-btn px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-bold">✨ Otomatis (AI)</button>
+            <button type="button" data-tab="manual" class="tab-source-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-bold">✍️ Manual</button>
+            <button type="button" data-tab="import" class="tab-source-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-bold">📂 Impor TXT/CSV</button>
+            <button type="button" data-tab="bank" class="tab-source-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-bold">📚 Bank Soal SMP</button>
+          </div>
+
+          <!-- Tab AI -->
+          <div id="tabContent-ai" class="tab-pane space-y-2">
+            <p class="text-slate-400">Buat soal pilihan ganda Informatika SMP secara otomatis menggunakan Gemini AI sesuai topik, kelas, dan tingkat kesulitan di atas.</p>
+            <div class="flex items-center gap-2">
+              <button id="btnGenerateAI" type="button" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-bold shadow transition">
+                ✨ Buat Soal Otomatis
+              </button>
+              <span id="aiStatusText" class="text-cyan-300 font-semibold"></span>
+            </div>
+          </div>
+
+          <!-- Tab Manual -->
+          <div id="tabContent-manual" class="tab-pane hidden space-y-2">
+            <textarea id="textareaManualQuestions" rows="4" placeholder="Contoh format (pisahkan antar soal dengan baris kosong):&#10;Perangkat keras yang berfungsi sebagai otak komputer adalah?&#10;*CPU (Processor)&#10;Monitor&#10;Keyboard&#10;Printer" class="w-full p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-100 font-mono text-[11px] outline-none focus:border-cyan-400"></textarea>
+            <div class="flex items-center justify-between">
+              <button id="btnParseManual" type="button" class="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold">Proses Soal</button>
+              <span id="manualParseStatus" class="text-emerald-300 font-semibold"></span>
+            </div>
+          </div>
+
+          <!-- Tab Impor -->
+          <div id="tabContent-import" class="tab-pane hidden space-y-2">
+            <p class="text-slate-400">Unggah file <code>.txt</code> atau <code>.csv</code> dengan format soal per blok (tanda <code>*</code> di depan jawaban benar, dipisah baris kosong).</p>
+            <input id="inputFileQuestions" type="file" accept=".txt,.csv" class="block w-full text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-indigo-600 file:text-white file:font-bold hover:file:bg-indigo-500 cursor-pointer" />
+            <span id="importFileStatus" class="block text-emerald-300 font-semibold"></span>
+          </div>
+
+          <!-- Tab Bank Soal -->
+          <div id="tabContent-bank" class="tab-pane hidden space-y-2">
+            <p class="text-slate-400">Gunakan 12 soal pilihan ganda Informatika SMP bawaan (offline) siap pakai untuk demo cepat di kelas.</p>
+            <button id="btnLoadBankSoal" type="button" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold">
+              📥 Muat Bank Soal Informatika SMP (12 Soal)
+            </button>
+          </div>
+        </div>
+
+        <!-- Pratinjau Daftar Soal -->
+        <div class="lg:col-span-6 bg-slate-950/80 border border-slate-800 rounded-xl p-2.5 flex flex-col">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-1.5 mb-2">
+            <span class="font-bold text-indigo-300">📋 Daftar Soal Aktif (<span id="questionCountBadge">10</span> soal)</span>
+            <span class="text-[11px] text-slate-400">Klik 🗑️ untuk hapus soal</span>
+          </div>
+          <div id="questionPreviewList" class="max-h-32 overflow-y-auto space-y-1.5 pr-1"></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Tombol Mengambang saat Panel Atas Dilipat -->
+  <div id="floatingToolbarGroup" class="hidden fixed top-2 right-2 z-40 flex flex-wrap items-center gap-1.5">
+    <button id="btnSpeedFloating" type="button" class="px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-amber-400/60 text-amber-200 hover:bg-amber-600 hover:text-white font-bold text-xs shadow-lg backdrop-blur">
+      🎈 Kecepatan
+    </button>
+    <button id="btnBalloonSizeFloating" type="button" class="px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-sky-400/60 text-sky-200 hover:bg-sky-600 hover:text-white font-bold text-xs shadow-lg backdrop-blur">
+      🔵 Ukuran Balon
+    </button>
+    <button id="btnGerakBebasFloating" type="button" class="px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-fuchsia-400/60 text-fuchsia-200 hover:bg-fuchsia-600 hover:text-white font-bold text-xs shadow-lg backdrop-blur">
+      🌀 Gerak Bebas
+    </button>
+    <button id="btnShowPanelFloating" type="button" class="px-3 py-1.5 rounded-xl bg-slate-900/90 border border-indigo-400/60 text-indigo-200 hover:bg-indigo-600 hover:text-white font-bold text-xs shadow-lg backdrop-blur">
+      ▼ Tampilkan Panel
+    </button>
+  </div>
+
+  <!-- =====================================================================
+       2. AREA GAME UTAMA (KAMERA + CANVAS + SOAL + DUA WILAYAH TIM)
+       ===================================================================== -->
+  <main id="gameStage" class="relative flex-1 w-full overflow-hidden bg-slate-950">
+    <!-- Video Kamera Mirror -->
+    <video id="cameraVideo" autoplay playsinline muted class="absolute inset-0 w-full h-full object-cover opacity-55 pointer-events-none"></video>
+    <!-- Overlay Gelap Transparan agar Teks & Balon Kontras -->
+    <div class="absolute inset-0 bg-gradient-to-b from-slate-950/75 via-slate-950/45 to-slate-950/80 pointer-events-none"></div>
+
+    <!-- Garis Pemisah Tengah Bercahaya (Tim 1 Kiri vs Tim 2 Kanan) -->
+    <div class="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-1 bg-gradient-to-b from-cyan-400 via-white to-orange-400 shadow-[0_0_20px_rgba(255,255,255,0.9)] z-10 pointer-events-none"></div>
+
+    <!-- Efek Flash Wilayah Tim 1 & Tim 2 + Overlay Kunci 2 Detik -->
+    <div id="team1AreaOverlay" class="absolute top-0 bottom-0 left-0 w-1/2 pointer-events-none transition-colors duration-200 z-10">
+      <div id="lockOverlay1" class="hidden absolute inset-0 bg-rose-950/70 backdrop-blur-[2px] flex flex-col items-center justify-center text-center p-4">
+        <div class="text-5xl mb-2 animate-bounce">🔒</div>
+        <div class="text-xl sm:text-2xl font-black text-rose-200 drop-shadow">TIM 1 TERKUNCI!</div>
+        <div class="text-xs sm:text-sm text-rose-300 font-semibold mt-1">Tunggu 2 detik sebelum menyentuh balon lagi</div>
+      </div>
+    </div>
+
+    <div id="team2AreaOverlay" class="absolute top-0 bottom-0 right-0 w-1/2 pointer-events-none transition-colors duration-200 z-10">
+      <div id="lockOverlay2" class="hidden absolute inset-0 bg-rose-950/70 backdrop-blur-[2px] flex flex-col items-center justify-center text-center p-4">
+        <div class="text-5xl mb-2 animate-bounce">🔒</div>
+        <div class="text-xl sm:text-2xl font-black text-rose-200 drop-shadow">TIM 2 TERKUNCI!</div>
+        <div class="text-xs sm:text-sm text-rose-300 font-semibold mt-1">Tunggu 2 detik sebelum menyentuh balon lagi</div>
+      </div>
+    </div>
+
+    <!-- Canvas Utama untuk Balon, Partikel, Shockwave, dan Kursor Tangan -->
+    <canvas id="gameCanvas" class="absolute inset-0 w-full h-full z-20"></canvas>
+
+    <!-- Kotak Soal & Bilah Timer di Tengah Atas -->
+    <div class="relative z-30 w-full max-w-5xl mx-auto px-3 pt-2 pointer-events-none">
+      <div class="bg-slate-900/90 border-2 border-indigo-400/60 rounded-2xl px-4 py-2.5 shadow-2xl backdrop-blur-md">
+        <div class="flex items-center justify-between gap-2 mb-1">
+          <span id="badgeQuestionNum" class="px-2.5 py-0.5 rounded-full bg-indigo-500/30 border border-indigo-400/50 text-indigo-200 font-extrabold text-xs sm:text-sm">
+            Soal 1/10
+          </span>
+          <span id="badgePhaseStatus" class="hidden px-2.5 py-0.5 rounded-full bg-sky-500/25 border border-sky-400/60 text-sky-200 font-extrabold text-xs tracking-wide">
+            🎈 Balon melayang... turun dalam 8 detik
+          </span>
+          <span id="badgeTimerText" class="font-mono font-extrabold text-amber-300 text-sm sm:text-base">
+            ⏱️ 20.0s
+          </span>
+        </div>
+        <h2 id="questionDisplay" class="text-center font-extrabold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] leading-snug tracking-tight" style="font-size: clamp(22px, 2.4vw, 32px);">
+          Tekan "Mulai Game" untuk memulai pertandingan!
+        </h2>
+        <!-- Bilah Timer Dua Warna (Biru = Gerak Bebas, Oranye = Turun) -->
+        <div class="relative w-full h-2.5 bg-slate-800 rounded-full overflow-hidden mt-2 border border-slate-700/80">
+          <div id="timerBarFill" class="h-full bg-gradient-to-r from-emerald-400 via-amber-400 to-rose-500 transition-all duration-75" style="width: 100%;"></div>
+          <div id="timerPhaseDivider" class="hidden absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_6px_#fff] z-10" style="left: 60%;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Banner Pengumuman Cepat Tengah Layar (Benar / Waktu Habis) -->
+    <div id="roundBannerOverlay" class="hidden absolute inset-0 z-30 flex items-center justify-center pointer-events-none px-4">
+      <div id="roundBannerCard" class="px-6 py-4 rounded-3xl bg-slate-900/95 border-2 border-emerald-400 shadow-2xl text-center backdrop-blur-md">
+        <div id="roundBannerEmoji" class="text-4xl mb-1">🎉</div>
+        <div id="roundBannerTitle" class="text-xl sm:text-3xl font-black text-white">Tim Cyber Menjawab Benar!</div>
+        <div id="roundBannerSub" class="text-xs sm:text-sm text-emerald-300 font-bold mt-1">Soal berikutnya dalam 2 detik...</div>
+      </div>
+    </div>
+
+    <!-- ===================================================================
+         MODAL IZIN KAMERA, KALIBRASI 5 DETIK, & HITUNG MUNDUR 3-2-1-GO!
+         =================================================================== -->
+    <div id="cameraPermissionModal" class="absolute inset-0 z-40 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+      <div class="max-w-lg w-full bg-slate-900 border-2 border-cyan-500/50 rounded-3xl p-6 shadow-2xl text-center space-y-4">
+        <div class="text-5xl">📷🖐️</div>
+        <h2 class="text-xl sm:text-2xl font-black text-white">Kontrol Gerakan Tangan via Kamera</h2>
+        <p class="text-sm text-slate-300 leading-relaxed">
+          Game ini memakai kamera untuk mendeteksi ujung jari telunjuk pemain. <strong class="text-cyan-300">Video tidak direkam dan tidak dikirim ke mana pun.</strong>
+        </p>
+        <div id="cameraErrorBox" class="hidden text-left bg-rose-950/90 border border-rose-500/70 rounded-2xl p-3 text-xs text-rose-200 space-y-1"></div>
+        <div id="gestureLoadingBox" class="hidden items-center justify-center gap-2 text-cyan-300 font-bold text-sm py-2">
+          <span class="inline-block w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></span>
+          <span>Memuat pengenal gestur tangan...</span>
+        </div>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
+          <button id="btnAllowCamera" type="button" class="w-full sm:w-auto px-5 py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-sm shadow-lg transition">
+            ✅ Izinkan Kamera
+          </button>
+          <button id="btnUseMouseFallback" type="button" class="w-full sm:w-auto px-5 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold text-sm transition">
+            🖱️ Main Tanpa Kamera (Mouse/Sentuh)
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Kalibrasi 5 Detik -->
+    <div id="calibrationModal" class="hidden absolute inset-0 z-40 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-none">
+      <div class="max-w-md w-full bg-slate-900/95 border-2 border-indigo-400 rounded-3xl p-5 shadow-2xl text-center space-y-3 pointer-events-auto">
+        <div class="text-4xl">👋✨</div>
+        <h3 class="text-lg sm:text-xl font-black text-white">Kalibrasi Tangan (<span id="calibTimerText">5</span>s)</h3>
+        <p class="text-xs sm:text-sm text-slate-300">Lambaikan tangan di depan kamera agar terdeteksi di masing-masing sisi!</p>
+        <div class="grid grid-cols-2 gap-3 pt-1">
+          <div id="calibStatusTeam1" class="p-3 rounded-2xl bg-slate-800 border border-slate-700 text-slate-400 font-bold text-xs">
+            ⏳ Tim 1 (Kiri): Menunggu tangan...
+          </div>
+          <div id="calibStatusTeam2" class="p-3 rounded-2xl bg-slate-800 border border-slate-700 text-slate-400 font-bold text-xs">
+            ⏳ Tim 2 (Kanan): Menunggu tangan...
+          </div>
+        </div>
+        <button id="btnSkipCalibration" type="button" class="mt-2 px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs">
+          Lewati Kalibrasi →
+        </button>
+      </div>
+    </div>
+
+    <!-- Overlay Hitung Mundur 3-2-1-GO! -->
+    <div id="countdownOverlay" class="hidden absolute inset-0 z-40 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center pointer-events-none">
+      <div id="countdownNumber" class="text-7xl sm:text-9xl font-black text-transparent bg-clip-text bg-gradient-to-b from-amber-300 to-orange-500 drop-shadow-[0_0_30px_rgba(251,191,36,0.8)]">
+        3
+      </div>
+    </div>
+
+    <!-- Modal Hasil Akhir Pertandingan -->
+    <div id="finalResultModal" class="hidden absolute inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+      <div class="max-w-xl w-full bg-slate-900 border-2 border-amber-400/80 rounded-3xl p-6 shadow-2xl text-center space-y-4">
+        <div class="text-5xl">🏆</div>
+        <h2 id="finalWinnerTitle" class="text-2xl sm:text-4xl font-black bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 bg-clip-text text-transparent">
+          PEMENANG: TIM CYBER!
+        </h2>
+        <p id="finalWinnerSubtitle" class="text-xs sm:text-sm text-slate-300">Pertandingan Informatika SMP selesai!</p>
+
+        <!-- Podium Skor -->
+        <div class="grid grid-cols-2 gap-3 pt-2">
+          <div id="podiumCard1" class="p-4 rounded-2xl bg-cyan-950/60 border-2 border-cyan-400/70">
+            <div id="finalTeam1Name" class="font-extrabold text-cyan-300 text-sm sm:text-base">Tim Cyber</div>
+            <div id="finalTeam1Score" class="text-3xl sm:text-4xl font-black text-white my-1">0</div>
+            <div id="finalTeam1Correct" class="text-xs text-cyan-200">Benar: 0 soal</div>
+          </div>
+          <div id="podiumCard2" class="p-4 rounded-2xl bg-orange-950/60 border-2 border-orange-400/70">
+            <div id="finalTeam2Name" class="font-extrabold text-orange-300 text-sm sm:text-base">Tim Algo</div>
+            <div id="finalTeam2Score" class="text-3xl sm:text-4xl font-black text-white my-1">0</div>
+            <div id="finalTeam2Correct" class="text-xs text-orange-200">Benar: 0 soal</div>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-center gap-2.5 pt-3">
+          <button id="btnPlayAgainSame" type="button" class="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs sm:text-sm shadow">
+            🔄 Main Lagi (Soal Sama)
+          </button>
+          <button id="btnPlayNewQuestions" type="button" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs sm:text-sm shadow">
+            ✨ Soal Baru
+          </button>
+          <button id="btnBackToSettings" type="button" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold text-xs sm:text-sm">
+            ⚙️ Kembali ke Pengaturan
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- =====================================================================
+       3. PAPAN SKOR BAWAH (TIM 1 KIRI | TARIK TAMBANG | TIM 2 KANAN)
+       ===================================================================== -->
+  <footer class="z-30 w-full bg-slate-950/95 border-t border-slate-800 px-3 py-2 shadow-2xl">
+    <div class="max-w-7xl mx-auto grid grid-cols-12 items-center gap-2">
+      <!-- Papan Skor Tim 1 (Kiri) -->
+      <div id="scoreBoxTeam1" class="col-span-4 sm:col-span-4 flex items-center justify-between bg-cyan-950/50 border border-cyan-500/40 rounded-xl px-2.5 py-1.5">
+        <div class="min-w-0">
+          <input id="scoreboardTeam1Name" type="text" value="Tim Cyber" maxlength="18" class="bg-transparent font-extrabold text-cyan-300 text-xs sm:text-sm w-full outline-none truncate" title="Klik untuk ubah nama Tim 1" />
+          <div class="text-[11px] text-cyan-200/80 font-bold">Streak: <span id="team1StreakText">0</span> 🔥</div>
+        </div>
+        <div id="team1ScoreDisplay" class="text-xl sm:text-3xl font-black text-white pl-2">0</div>
+      </div>
+
+      <!-- Bilah Tarik Tambang Tengah -->
+      <div class="col-span-4 sm:col-span-4 flex flex-col items-center justify-center px-1">
+        <div class="text-[10px] sm:text-xs font-extrabold tracking-wider text-slate-400 uppercase mb-1">⚡ Tarik Tambang Skor ⚡</div>
+        <div class="relative w-full h-3.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700 flex">
+          <div id="tugBarTeam1" class="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-300" style="width: 50%;"></div>
+          <div id="tugBarTeam2" class="h-full bg-gradient-to-r from-orange-500 to-pink-500 transition-all duration-300" style="width: 50%;"></div>
+          <div class="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-1 bg-white shadow"></div>
+        </div>
+      </div>
+
+      <!-- Papan Skor Tim 2 (Kanan) -->
+      <div id="scoreBoxTeam2" class="col-span-4 sm:col-span-4 flex items-center justify-between bg-orange-950/50 border border-orange-500/40 rounded-xl px-2.5 py-1.5">
+        <div id="team2ScoreDisplay" class="text-xl sm:text-3xl font-black text-white pr-2">0</div>
+        <div class="min-w-0 text-right">
+          <input id="scoreboardTeam2Name" type="text" value="Tim Algo" maxlength="18" class="bg-transparent font-extrabold text-orange-300 text-xs sm:text-sm w-full text-right outline-none truncate" title="Klik untuk ubah nama Tim 2" />
+          <div class="text-[11px] text-orange-200/80 font-bold">🔥 Streak: <span id="team2StreakText">0</span></div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- =====================================================================
+       4. LOGIKA JAVASCRIPT LENGKAP (CONFIG -> STATE -> DOM -> SOUND -> FUNGSI -> INIT)
+       ===================================================================== -->
+  <script type="module">
+    import { FilesetResolver, HandLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+
+    /* =====================================================================
+       BAGIAN A: KONSTANTA PENGATURAN GAME (DAPAT DIMODIFIKASI GURU)
+       ===================================================================== */
+    const CONFIG = {
+      // Pengaturan Skor & Hukuman
+      poinBenar: 10,               // Poin dasar jawaban benar
+      bonusKecepatanMaks: 5,       // Bonus maksimal jika menjawab cepat (0-5 poin)
+      syaratStreakBonus: 3,        // Jumlah jawaban benar beruntun untuk bonus
+      poinBonusStreak: 5,          // Tambahan poin saat mencapai streak
+      penaltiSalah: 3,             // Pengurangan poin jika menyentuh balon salah
+      durasiKunciSalah: 2.0,       // Lama tim dikunci (detik) saat salah menjawab
+
+      // Pengaturan Kecepatan Jatuh Balon (piksel per detik pada layar acuan 720p)
+      kecepatanBalon: 2,           // Tingkat default (1 s.d. 5)
+      kecepatanTurunMap: {
+        1: 42,                     // 1 - Lambat
+        2: 64,                     // 2 - Sedang
+        3: 90,                     // 3 - Cepat
+        4: 120,                    // 4 - Sangat Cepat
+        5: 155                     // 5 - Kilat
+      },
+
+      // Pengaturan Ukuran Balon & Area Sentuh (Acuan layar 1280x720)
+      ukuranBalon: 100,            // Radius dasar balon (Default: Besar = 100px)
+      hitbox: 1.15,                // Pengali radius sentuh (1.15 = 115%)
+      autoSesuaikanTeks: true,     // Perbesar balon hingga +25% untuk teks panjang
+      variasiAcak: false,          // Variasi ukuran ±10% tiap balon
+      presetUkuran: {
+        kecil: 60,
+        sedang: 80,
+        besar: 100,
+        jumbo: 125
+      },
+
+      // Pengaturan Fase Gerak Bebas Balon (Melayang & Memantul Sebelum Turun)
+      gerakBebas: {
+        aktif: true,               // true = melayang dulu sebelum turun
+        mode: "otomatis",          // "otomatis" (% waktu soal) atau "manual" (detik)
+        persen: 40,                // Persentase durasi melayang dari waktu soal (10-80%)
+        detikManual: 8,            // Durasi melayang manual dalam detik (0-30)
+        kecepatan: 2,              // Kecepatan gerak melayang (1-5)
+        pola: "acak",              // "acak", "kanan_kiri", "angka_delapan", "memantul"
+        jangkauanVertikal: 25,     // Jangkauan vertikal melayang (0-60% tinggi area tim)
+        hitungMundur: true,        // Tampilkan hitung mundur fase melayang di kotak soal
+        peringatan: true           // Getar & bunyi peringatan saat balon mulai turun
+      },
+      kecepatanGerakBebasMap: {
+        1: 85,
+        2: 135,
+        3: 195,
+        4: 265,
+        5: 345
+      },
+
+      // Batas Partikel Maksimal agar 60 FPS lancar
+      maksPartikel: 300
+    };
+
+    // Palet Warna Balon Cerah Kontras Tinggi
+    const BALLOON_PALETTES = [
+      { top: "#38bdf8", mid: "#0284c7", bot: "#0369a1", glow: "rgba(56,189,248,0.55)" },
+      { top: "#f472b6", mid: "#db2777", bot: "#9d174d", glow: "rgba(244,114,182,0.55)" },
+      { top: "#34d399", mid: "#059669", bot: "#065f46", glow: "rgba(52,211,153,0.55)" },
+      { top: "#fbbf24", mid: "#d97706", bot: "#92400e", glow: "rgba(251,191,36,0.55)" }
+    ];
+
+    // Bank Soal Bawaan Informatika SMP (12 Soal Offline)
+    const BANK_SOAL_INFORMATIKA_SMP = [
+      {
+        soal: "Teknik memecah masalah besar dan kompleks menjadi bagian-bagian kecil yang lebih mudah diselesaikan disebut...",
+        pilihan: ["Dekomposisi", "Abstraksi", "Pengenalan Pola", "Algoritma"],
+        jawabanBenar: 0
+      },
+      {
+        soal: "Perangkat jaringan yang berfungsi menghubungkan dua atau lebih jaringan berbeda dan menentukan rute paket data adalah...",
+        pilihan: ["Router", "Switch", "Repeater", "Access Point"],
+        jawabanBenar: 0
+      },
+      {
+        soal: "Bilangan biner 1010 jika dikonversi ke dalam sistem bilangan desimal bernilai...",
+        pilihan: ["10", "8", "12", "14"],
+        jawabanBenar: 0
+      },
+      {
+        soal: "Simbol flowchart berbentuk belah ketupat (diamond) digunakan untuk menyatakan proses...",
+        pilihan: ["Percabangan / Keputusan", "Input / Output Data", "Mulai / Selesai", "Proses Perhitungan"],
+        jawabanBenar: 0
+      },
+      {
+        soal: "Memori sementara pada komputer yang isinya akan hilang saat aliran listrik dimatikan adalah...",
+        pilihan: ["RAM", "ROM", "Harddisk", "SSD"],
+        jawabanBenar: 0
+      },
+      {
+        soal: "Fungsi pada aplikasi pengolah lembar kerja (Spreadsheet) untuk menghitung nilai rata-rata sekumpulan data adalah...",
+        pilihan: ["AVERAGE", "SUM", "COUNT", "MAX"],
+        jawabanBenar: 0
+      },
+      {
+        soal: "Upaya penipuan digital dengan menyamar sebagai lembaga resmi untuk mencuri kata sandi dan data pribadi disebut...",
+        pilihan: ["Phishing", "Firewall", "Enkripsi", "Backup"],
+        jawabanBenar: 0
+      },
+      {
+        soal: "Urutan langkah-langkah logis dan sistematis untuk menyelesaikan suatu masalah disebut...",
+        pilihan: ["Algoritma", "Heuristik", "Variabel", "Kompilasi"],
+        jawabanBenar: 0
+      },
+      {
+        soal: "Struktur data yang menerapkan prinsip LIFO (Last In, First Out) atau tumpukan adalah...",
+        pilihan: ["Stack", "Queue", "Array", "Tree"],
+        jawabanBenar: 0
+      },
+      {
+        soal: "Protokol standar yang digunakan untuk mengamankan pertukaran data terenkripsi pada situs web adalah...",
+        pilihan: ["HTTPS", "HTTP", "FTP", "SMTP"],
+        jawabanBenar: 0
+      },
+      {
+        soal: "Fokus pada informasi penting dan mengabaikan detail yang tidak relevan dalam berpikir komputasional disebut...",
+        pilihan: ["Abstraksi", "Dekomposisi", "Iterasi", "Rekursi"],
+        jawabanBenar: 0
+      },
+      {
+        soal: "Satuan terkecil dari data digital dalam sistem komputer yang hanya bernilai 0 atau 1 adalah...",
+        pilihan: ["Bit", "Byte", "Kilobyte", "Nibble"],
+        jawabanBenar: 0
+      }
+    ];
+
+    /* =====================================================================
+       BAGIAN B: STATE PERMAINAN
+       ===================================================================== */
+    const state = {
+      status: "IDLE",              // IDLE, CALIBRATING, COUNTDOWN, PLAYING, PAUSED, ROUND_END, FINISHED
+      questions: [],
+      currentQuestionIndex: 0,
+      maxTimePerQuestion: 20,
+      timeRemaining: 20,
+      questionResolved: false,
+      pausedByPopup: false,
+      previousStatusBeforePause: "PLAYING",
+
+      // State Fase 1 (Gerak Bebas) & Fase 2 (Turun)
+      phase1Duration: 8,
+      phase1Elapsed: 0,
+      hasTriggeredDropAlert: false,
+      dropAlertBannerTimer: 0,
+
+      // Data Tim
+      team1: { score: 0, displayScore: 0, streak: 0, correctCount: 0, lockTimer: 0 },
+      team2: { score: 0, displayScore: 0, streak: 0, correctCount: 0, lockTimer: 0 },
+
+      // Entitas Canvas
+      balloons: [],
+      particles: [],
+      floatingTexts: [],
+      shockwaves: [],
+      screenShake: { t1: 0, t2: 0 },
+
+      // Kamera & Pengenal Gestur
+      cameraActive: false,
+      cameraStream: null,
+      mouseMode: false,
+      showSkeleton: false,
+      handLandmarker: null,
+      isGestureModelLoading: false,
+      calibTimer: 5,
+      calibDetected: { t1: false, t2: false },
+
+      // Kursor Tangan / Mouse per Tim
+      cursors: {
+        t1: { x: 0, y: 0, active: false, alpha: 0, trail: [], landmarks: null },
+        t2: { x: 0, y: 0, active: false, alpha: 0, trail: [], landmarks: null }
+      }
+    };
+
+    let canvasWidth = 1280;
+    let canvasHeight = 720;
+    let roundTransitionTimeout = null;
+    let countdownInterval = null;
+    let calibrationInterval = null;
+
+    /* =====================================================================
+       BAGIAN C: REFERENSI ELEMEN DOM
+       ===================================================================== */
+    const dom = {
+      globalErrorBanner: document.getElementById("globalErrorBanner"),
+      globalErrorText: document.getElementById("globalErrorText"),
+      btnCloseErrorBanner: document.getElementById("btnCloseErrorBanner"),
+
+      topControlWrapper: document.getElementById("topControlWrapper"),
+      collapsiblePanelBody: document.getElementById("collapsiblePanelBody"),
+      btnTogglePanel: document.getElementById("btnTogglePanel"),
+      floatingToolbarGroup: document.getElementById("floatingToolbarGroup"),
+      btnShowPanelFloating: document.getElementById("btnShowPanelFloating"),
+
+      btnStartGame: document.getElementById("btnStartGame"),
+      btnPauseResume: document.getElementById("btnPauseResume"),
+      btnRestartGame: document.getElementById("btnRestartGame"),
+      btnNextQuestion: document.getElementById("btnNextQuestion"),
+      btnFullscreen: document.getElementById("btnFullscreen"),
+      btnToggleMute: document.getElementById("btnToggleMute"),
+      btnToggleCam: document.getElementById("btnToggleCam"),
+      btnToggleMouseMode: document.getElementById("btnToggleMouseMode"),
+      btnToggleSkeleton: document.getElementById("btnToggleSkeleton"),
+
+      // Popup Kecepatan
+      btnSpeedPopup: document.getElementById("btnSpeedPopup"),
+      popupSpeedPanel: document.getElementById("popupSpeedPanel"),
+      btnSpeedFloating: document.getElementById("btnSpeedFloating"),
+      sliderSpeedPopup: document.getElementById("sliderSpeedPopup"),
+      labelSpeedPopup: document.getElementById("labelSpeedPopup"),
+
+      // Popup Ukuran Balon
+      btnBalloonSizePopup: document.getElementById("btnBalloonSizePopup"),
+      popupBalloonSizePanel: document.getElementById("popupBalloonSizePanel"),
+      btnBalloonSizeFloating: document.getElementById("btnBalloonSizeFloating"),
+      sizePresetBadge: document.getElementById("sizePresetBadge"),
+      sliderBalloonRadius: document.getElementById("sliderBalloonRadius"),
+      labelBalloonRadiusPx: document.getElementById("labelBalloonRadiusPx"),
+      sliderHitboxMult: document.getElementById("sliderHitboxMult"),
+      labelHitboxPct: document.getElementById("labelHitboxPct"),
+      toggleAutoTextSize: document.getElementById("toggleAutoTextSize"),
+      toggleRandomSizeVar: document.getElementById("toggleRandomSizeVar"),
+      balloonPreviewCanvas: document.getElementById("balloonPreviewCanvas"),
+      previewFitWarning: document.getElementById("previewFitWarning"),
+      btnResetBalloonSize: document.getElementById("btnResetBalloonSize"),
+
+      // Popup Gerak Bebas
+      btnGerakBebasPopup: document.getElementById("btnGerakBebasPopup"),
+      popupGerakBebasPanel: document.getElementById("popupGerakBebasPanel"),
+      btnGerakBebasFloating: document.getElementById("btnGerakBebasFloating"),
+      toggleGerakBebasAktif: document.getElementById("toggleGerakBebasAktif"),
+      gerakBebasControlsWrap: document.getElementById("gerakBebasControlsWrap"),
+      gbAutoSliderBox: document.getElementById("gbAutoSliderBox"),
+      gbManualSliderBox: document.getElementById("gbManualSliderBox"),
+      sliderGbPersen: document.getElementById("sliderGbPersen"),
+      labelGbPersen: document.getElementById("labelGbPersen"),
+      sliderGbManualDetik: document.getElementById("sliderGbManualDetik"),
+      labelGbManualDetik: document.getElementById("labelGbManualDetik"),
+      sliderGbSpeed: document.getElementById("sliderGbSpeed"),
+      labelGbSpeed: document.getElementById("labelGbSpeed"),
+      sliderGbVertikal: document.getElementById("sliderGbVertikal"),
+      labelGbVertikal: document.getElementById("labelGbVertikal"),
+      toggleGbHitungMundur: document.getElementById("toggleGbHitungMundur"),
+      toggleGbPeringatan: document.getElementById("toggleGbPeringatan"),
+      gerakBebasPreviewCanvas: document.getElementById("gerakBebasPreviewCanvas"),
+      previewGbStatusBadge: document.getElementById("previewGbStatusBadge"),
+      btnResetGerakBebas: document.getElementById("btnResetGerakBebas"),
+      mainPanelGbSummary: document.getElementById("mainPanelGbSummary"),
+      btnOpenGbFromMain: document.getElementById("btnOpenGbFromMain"),
+
+      // Form Pengaturan & Soal
+      inputMapel: document.getElementById("inputMapel"),
+      inputTopik: document.getElementById("inputTopik"),
+      inputKelas: document.getElementById("inputKelas"),
+      inputKesulitan: document.getElementById("inputKesulitan"),
+      inputJumlahSoal: document.getElementById("inputJumlahSoal"),
+      inputWaktuSoal: document.getElementById("inputWaktuSoal"),
+      inputTeam1Name: document.getElementById("inputTeam1Name"),
+      inputTeam2Name: document.getElementById("inputTeam2Name"),
+      btnGenerateAI: document.getElementById("btnGenerateAI"),
+      aiStatusText: document.getElementById("aiStatusText"),
+      textareaManualQuestions: document.getElementById("textareaManualQuestions"),
+      btnParseManual: document.getElementById("btnParseManual"),
+      manualParseStatus: document.getElementById("manualParseStatus"),
+      inputFileQuestions: document.getElementById("inputFileQuestions"),
+      importFileStatus: document.getElementById("importFileStatus"),
+      btnLoadBankSoal: document.getElementById("btnLoadBankSoal"),
+      questionCountBadge: document.getElementById("questionCountBadge"),
+      questionPreviewList: document.getElementById("questionPreviewList"),
+
+      // Area Game, Video & Canvas
+      gameStage: document.getElementById("gameStage"),
+      cameraVideo: document.getElementById("cameraVideo"),
+      gameCanvas: document.getElementById("gameCanvas"),
+      team1AreaOverlay: document.getElementById("team1AreaOverlay"),
+      team2AreaOverlay: document.getElementById("team2AreaOverlay"),
+      lockOverlay1: document.getElementById("lockOverlay1"),
+      lockOverlay2: document.getElementById("lockOverlay2"),
+
+      // Kotak Soal & Timer
+      badgeQuestionNum: document.getElementById("badgeQuestionNum"),
+      badgePhaseStatus: document.getElementById("badgePhaseStatus"),
+      badgeTimerText: document.getElementById("badgeTimerText"),
+      questionDisplay: document.getElementById("questionDisplay"),
+      timerBarFill: document.getElementById("timerBarFill"),
+      timerPhaseDivider: document.getElementById("timerPhaseDivider"),
+
+      // Banner & Modal
+      roundBannerOverlay: document.getElementById("roundBannerOverlay"),
+      roundBannerCard: document.getElementById("roundBannerCard"),
+      roundBannerEmoji: document.getElementById("roundBannerEmoji"),
+      roundBannerTitle: document.getElementById("roundBannerTitle"),
+      roundBannerSub: document.getElementById("roundBannerSub"),
+
+      cameraPermissionModal: document.getElementById("cameraPermissionModal"),
+      cameraErrorBox: document.getElementById("cameraErrorBox"),
+      gestureLoadingBox: document.getElementById("gestureLoadingBox"),
+      btnAllowCamera: document.getElementById("btnAllowCamera"),
+      btnUseMouseFallback: document.getElementById("btnUseMouseFallback"),
+
+      calibrationModal: document.getElementById("calibrationModal"),
+      calibTimerText: document.getElementById("calibTimerText"),
+      calibStatusTeam1: document.getElementById("calibStatusTeam1"),
+      calibStatusTeam2: document.getElementById("calibStatusTeam2"),
+      btnSkipCalibration: document.getElementById("btnSkipCalibration"),
+
+      countdownOverlay: document.getElementById("countdownOverlay"),
+      countdownNumber: document.getElementById("countdownNumber"),
+
+      finalResultModal: document.getElementById("finalResultModal"),
+      finalWinnerTitle: document.getElementById("finalWinnerTitle"),
+      finalWinnerSubtitle: document.getElementById("finalWinnerSubtitle"),
+      finalTeam1Name: document.getElementById("finalTeam1Name"),
+      finalTeam1Score: document.getElementById("finalTeam1Score"),
+      finalTeam1Correct: document.getElementById("finalTeam1Correct"),
+      finalTeam2Name: document.getElementById("finalTeam2Name"),
+      finalTeam2Score: document.getElementById("finalTeam2Score"),
+      finalTeam2Correct: document.getElementById("finalTeam2Correct"),
+      btnPlayAgainSame: document.getElementById("btnPlayAgainSame"),
+      btnPlayNewQuestions: document.getElementById("btnPlayNewQuestions"),
+      btnBackToSettings: document.getElementById("btnBackToSettings"),
+
+      // Papan Skor Bawah
+      scoreBoxTeam1: document.getElementById("scoreBoxTeam1"),
+      scoreBoxTeam2: document.getElementById("scoreBoxTeam2"),
+      scoreboardTeam1Name: document.getElementById("scoreboardTeam1Name"),
+      scoreboardTeam2Name: document.getElementById("scoreboardTeam2Name"),
+      team1ScoreDisplay: document.getElementById("team1ScoreDisplay"),
+      team2ScoreDisplay: document.getElementById("team2ScoreDisplay"),
+      team1StreakText: document.getElementById("team1StreakText"),
+      team2StreakText: document.getElementById("team2StreakText"),
+      tugBarTeam1: document.getElementById("tugBarTeam1"),
+      tugBarTeam2: document.getElementById("tugBarTeam2")
+    };
+
+    const ctx = dom.gameCanvas.getContext("2d");
+
+    function showFriendlyError(msg) {
+      if (dom.globalErrorText && dom.globalErrorBanner) {
+        dom.globalErrorText.textContent = msg;
+        dom.globalErrorBanner.classList.remove("hidden");
+      }
+    }
+
+    /* =====================================================================
+       BAGIAN D: SINTESIS AUDIO WEB AUDIO API (TANPA FILE EKSTERNAL)
+       ===================================================================== */
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.muted = false;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) this.ctx = new AudioCtx();
+        }
+        if (this.ctx && this.ctx.state === "suspended") {
+          this.ctx.resume().catch(() => {});
+        }
+      }
+      playTone(freq, type, duration, gainVal = 0.2, delay = 0) {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime + delay;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now);
+        gain.gain.setValueAtTime(gainVal, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + duration);
+      }
+      playCorrect() {
+        this.playTone(523.25, "triangle", 0.12, 0.24, 0);
+        this.playTone(659.25, "triangle", 0.14, 0.24, 0.08);
+        this.playTone(783.99, "sine", 0.25, 0.28, 0.16);
+      }
+      playWrong() {
+        this.playTone(185, "sawtooth", 0.22, 0.24, 0);
+        this.playTone(140, "sawtooth", 0.28, 0.24, 0.12);
+      }
+      playPop() {
+        this.playTone(420, "sine", 0.08, 0.15, 0);
+      }
+      playDropWarning() {
+        this.playTone(587.33, "triangle", 0.09, 0.14, 0);
+        this.playTone(440.00, "triangle", 0.13, 0.14, 0.08);
+      }
+      playCountdown(isGo = false) {
+        if (isGo) this.playTone(880, "triangle", 0.28, 0.28, 0);
+        else this.playTone(440, "sine", 0.14, 0.2, 0);
+      }
+      playWinFanfare() {
+        const notes = [523.25, 659.25, 783.99, 1046.5];
+        notes.forEach((n, idx) => this.playTone(n, "triangle", 0.28, 0.25, idx * 0.12));
+      }
+    }
+
+    const sound = new SoundEngine();
+
+    /* =====================================================================
+       BAGIAN E: FUNGSI-FUNGSI UTAMA PERMAINAN
+       ===================================================================== */
+    function resizeGameCanvas() {
+      const rect = dom.gameStage.getBoundingClientRect();
+      canvasWidth = Math.max(320, rect.width);
+      canvasHeight = Math.max(240, rect.height);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      dom.gameCanvas.width = Math.floor(canvasWidth * dpr);
+      dom.gameCanvas.height = Math.floor(canvasHeight * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      recalculateActiveBalloonsLayout();
+    }
+
+    function getScreenScaleFactor() {
+      const scaleW = canvasWidth / 1280;
+      const scaleH = canvasHeight / 720;
+      return Math.max(0.55, Math.min(1.45, Math.min(scaleW, scaleH)));
+    }
+
+    function getCurrentBaseBalloonSpeed() {
+      const base = CONFIG.kecepatanTurunMap[CONFIG.kecepatanBalon] || 64;
+      return base * (canvasHeight / 720);
+    }
+
+    function getTextAutoSizeMultiplier(text) {
+      if (!CONFIG.autoSesuaikanTeks) return 1.0;
+      const len = (text || "").trim().length;
+      if (len <= 12) return 1.0;
+      if (len <= 24) return 1.1;
+      if (len <= 38) return 1.18;
+      return 1.25;
+    }
+
+    function getEffectiveBalloonRadius(sizeMult = 1.0, randomVar = 1.0) {
+      return CONFIG.ukuranBalon * getScreenScaleFactor() * sizeMult * randomVar;
+    }
+
+    function computeTeamBalloonLayout(teamLeft, teamWidth, itemSpecs) {
+      const sideMargin = 10;
+      const usableW = Math.max(120, teamWidth - sideMargin * 2);
+      const minGap = 12;
+
+      const totalDiam1Row = itemSpecs.reduce((acc, it) => acc + it.desiredRadius * 2, 0) + minGap * (itemSpecs.length - 1);
+      if (totalDiam1Row <= usableW) {
+        const extraSpace = usableW - totalDiam1Row;
+        const stepGap = minGap + extraSpace / (itemSpecs.length + 1);
+        let curX = teamLeft + sideMargin + stepGap;
+        const positions = itemSpecs.map((it) => {
+          const cx = curX + it.desiredRadius;
+          curX += it.desiredRadius * 2 + stepGap;
+          return { x: cx, row: 0 };
+        });
+        return { fitScale: 1.0, positions, shrunk: false };
+      }
+
+      // Bagi menjadi 2 baris zig-zag bila ruang horizontal sempit (misal ukuran Jumbo)
+      const row0 = [itemSpecs[0], itemSpecs[2]];
+      const row1 = [itemSpecs[1], itemSpecs[3]];
+      const reqRow0 = (row0[0].desiredRadius + row0[1].desiredRadius) * 2 + minGap * 2;
+      const reqRow1 = (row1[0].desiredRadius + row1[1].desiredRadius) * 2 + minGap * 2;
+      const maxReq2Row = Math.max(reqRow0, reqRow1);
+      const fitScale = Math.min(1.0, usableW / maxReq2Row);
+
+      const positions = new Array(4);
+      [0, 1].forEach((rIdx) => {
+        const indices = rIdx === 0 ? [0, 2] : [1, 3];
+        const rA = itemSpecs[indices[0]].desiredRadius * fitScale;
+        const rB = itemSpecs[indices[1]].desiredRadius * fitScale;
+        const rem = Math.max(minGap, usableW - (rA * 2 + rB * 2));
+        const gap = rem / 3;
+        positions[indices[0]] = { x: teamLeft + sideMargin + gap + rA, row: rIdx };
+        positions[indices[1]] = { x: teamLeft + sideMargin + gap * 2 + rA * 2 + rB, row: rIdx };
+      });
+
+      return { fitScale, positions, shrunk: fitScale < 0.98 };
+    }
+
+    function recalculateActiveBalloonsLayout() {
+      if (!state.balloons || state.balloons.length === 0) return;
+      const halfW = canvasWidth / 2;
+      [1, 2].forEach((teamId) => {
+        const teamBalloons = state.balloons.filter((b) => b.teamId === teamId);
+        if (teamBalloons.length === 0) return;
+        const teamLeft = teamId === 1 ? 14 : halfW + 14;
+        const teamRight = teamId === 1 ? halfW - 14 : canvasWidth - 14;
+        const teamWidth = Math.max(150, teamRight - teamLeft);
+
+        const specs = teamBalloons.map((b) => {
+          b.sizeMult = getTextAutoSizeMultiplier(b.text);
+          return {
+            desiredRadius: getEffectiveBalloonRadius(b.sizeMult, b.randomVar)
+          };
+        });
+        const layout = computeTeamBalloonLayout(teamLeft, teamWidth, specs);
+        teamBalloons.forEach((b, idx) => {
+          b.targetRadius = specs[idx].desiredRadius * layout.fitScale;
+          b.targetBaseX = layout.positions[idx].x;
+        });
+      });
+    }
+
+    // Menghitung durasi Fase 1 (Gerak Bebas) berdasarkan Waktu per Soal
+    function computePhase1Duration(totalQuestionTime) {
+      if (!CONFIG.gerakBebas.aktif) return 0;
+      const total = Math.max(5, Number(totalQuestionTime) || 20);
+      if (CONFIG.gerakBebas.mode === "manual") {
+        const maxAllowed = Math.max(0, total - 5);
+        return Math.min(CONFIG.gerakBebas.detikManual, maxAllowed);
+      }
+      const raw = total * (CONFIG.gerakBebas.persen / 100);
+      const maxAllowed = Math.max(0, total - 4);
+      return Math.min(raw, maxAllowed);
+    }
+
+    function renderQuestionPreviewList() {
+      dom.questionCountBadge.textContent = String(state.questions.length);
+      dom.questionPreviewList.innerHTML = "";
+      state.questions.forEach((q, idx) => {
+        const row = document.createElement("div");
+        row.className = "flex items-center justify-between gap-2 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5";
+        const textSpan = document.createElement("span");
+        textSpan.className = "truncate text-slate-200";
+        textSpan.textContent = `${idx + 1}. ${q.soal} (✓ ${q.pilihan[q.jawabanBenar]})`;
+        const delBtn = document.createElement("button");
+        delBtn.type = "button";
+        delBtn.className = "text-rose-400 hover:text-rose-300 font-bold px-1.5";
+        delBtn.textContent = "🗑️";
+        delBtn.addEventListener("click", () => {
+          if (state.questions.length <= 1) {
+            showFriendlyError("Minimal harus tersisa 1 soal untuk bermain.");
+            return;
+          }
+          state.questions.splice(idx, 1);
+          renderQuestionPreviewList();
+        });
+        row.appendChild(textSpan);
+        row.appendChild(delBtn);
+        dom.questionPreviewList.appendChild(row);
+      });
+    }
+
+    function parseManualBlockText(rawText) {
+      const blocks = rawText.trim().split(/\n\s*\n/);
+      const parsed = [];
+      for (const block of blocks) {
+        const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+        if (lines.length >= 5) {
+          const soal = lines[0];
+          const optsRaw = lines.slice(1, 5);
+          let correctIdx = optsRaw.findIndex((o) => o.startsWith("*"));
+          if (correctIdx === -1) correctIdx = 0;
+          const pilihan = optsRaw.map((o) => o.replace(/^\*+/, "").trim());
+          parsed.push({ soal, pilihan, jawabanBenar: correctIdx });
+        }
+      }
+      return parsed;
+    }
+
+    async function generateQuestionsWithAI() {
+      const mapel = dom.inputMapel.value.trim() || "Informatika";
+      const topik = dom.inputTopik.value;
+      const kelas = dom.inputKelas.value;
+      const kesulitan = dom.inputKesulitan.value;
+      const jumlah = Math.min(30, Math.max(3, parseInt(dom.inputJumlahSoal.value, 10) || 10));
+
+      dom.btnGenerateAI.disabled = true;
+      dom.aiStatusText.textContent = "⏳ Sedang membuat soal dengan AI...";
+
+      const prompt = `Buatkan ${jumlah} soal pilihan ganda mata pelajaran ${mapel} untuk siswa kelas ${kelas} SMP tentang topik "${topik}" dengan tingkat kesulitan ${kesulitan}. Bahasa Indonesia yang jelas dan singkat agar muat di balon game. Kembalikan HANYA JSON murni berbentuk array objek tanpa markdown dengan format persis: [{"soal":"...","pilihan":["opsi1","opsi2","opsi3","opsi4"],"jawabanBenar":0}]`;
+
+      const apiKey = "";
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          const response = await fetch(apiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { responseMimeType: "application/json" }
+            })
+          });
+          if (!response.ok) throw new Error("Gagal menghubungi layanan AI");
+          const data = await response.json();
+          let rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          rawText = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
+          const arr = JSON.parse(rawText);
+          if (!Array.isArray(arr) || arr.length === 0) throw new Error("Format JSON kosong");
+
+          const validQuestions = arr.filter(
+            (item) =>
+              item &&
+              typeof item.soal === "string" &&
+              Array.isArray(item.pilihan) &&
+              item.pilihan.length === 4 &&
+              typeof item.jawabanBenar === "number" &&
+              item.jawabanBenar >= 0 &&
+              item.jawabanBenar <= 3
+          );
+
+          if (validQuestions.length === 0) throw new Error("Struktur soal tidak valid");
+          state.questions = validQuestions;
+          renderQuestionPreviewList();
+          dom.aiStatusText.textContent = `✅ Berhasil membuat ${validQuestions.length} soal!`;
+          dom.btnGenerateAI.disabled = false;
+          return;
+        } catch (err) {
+          if (attempt === 2) {
+            dom.aiStatusText.textContent = "⚠️ AI tidak tersedia, memakai Bank Soal SMP cadangan.";
+            state.questions = BANK_SOAL_INFORMATIKA_SMP.slice(0, jumlah);
+            renderQuestionPreviewList();
+          }
+        }
+      }
+      dom.btnGenerateAI.disabled = false;
+    }
+
+    function updateTimerBarUI() {
+      const total = Math.max(1, Number(state.maxTimePerQuestion) || 20);
+      const remaining = Math.max(0, Number(state.timeRemaining) || 0);
+      const ratio = Math.max(0, Math.min(1, remaining / total));
+      dom.timerBarFill.style.width = `${ratio * 100}%`;
+      dom.badgeTimerText.textContent = `⏱️ ${remaining.toFixed(1)}s`;
+
+      const gbActive = CONFIG.gerakBebas.aktif && state.phase1Duration > 0;
+      const inPhase1 = gbActive && (state.phase1Elapsed < state.phase1Duration);
+
+      if (gbActive) {
+        const phase1SharePct = Math.min(90, Math.max(5, (state.phase1Duration / total) * 100));
+        const dropSharePct = 100 - phase1SharePct;
+        dom.timerPhaseDivider.classList.remove("hidden");
+        dom.timerPhaseDivider.style.left = `${dropSharePct}%`;
+
+        if (inPhase1) {
+          dom.timerBarFill.className = "h-full bg-gradient-to-r from-amber-500 via-sky-400 to-cyan-300 transition-all duration-75";
+        } else {
+          dom.timerBarFill.className = "h-full bg-gradient-to-r from-rose-500 via-orange-400 to-amber-300 transition-all duration-75";
+        }
+      } else {
+        dom.timerPhaseDivider.classList.add("hidden");
+        if (ratio > 0.5) dom.timerBarFill.className = "h-full bg-gradient-to-r from-emerald-400 to-cyan-400 transition-all duration-75";
+        else if (ratio > 0.25) dom.timerBarFill.className = "h-full bg-gradient-to-r from-amber-400 to-orange-400 transition-all duration-75";
+        else dom.timerBarFill.className = "h-full bg-gradient-to-r from-rose-500 to-red-600 animate-pulse transition-all duration-75";
+      }
+
+      if (state.status !== "PLAYING" || state.questionResolved) {
+        dom.badgePhaseStatus.classList.add("hidden");
+        return;
+      }
+
+      if (inPhase1 && CONFIG.gerakBebas.hitungMundur) {
+        const sisaMelayang = Math.max(1, Math.ceil(state.phase1Duration - state.phase1Elapsed));
+        dom.badgePhaseStatus.classList.remove("hidden");
+        dom.badgePhaseStatus.className = "px-2.5 py-0.5 rounded-full bg-sky-500/25 border border-sky-400/70 text-sky-200 font-extrabold text-xs tracking-wide";
+        dom.badgePhaseStatus.textContent = `🎈 Balon melayang... turun dalam ${sisaMelayang} detik`;
+      } else if (state.dropAlertBannerTimer > 0 && CONFIG.gerakBebas.peringatan) {
+        dom.badgePhaseStatus.classList.remove("hidden");
+        dom.badgePhaseStatus.className = "px-2.5 py-0.5 rounded-full bg-amber-500/30 border border-amber-400 text-amber-200 font-extrabold text-xs tracking-wide animate-bounce";
+        dom.badgePhaseStatus.textContent = "⬇️ Balon mulai turun!";
+      } else {
+        dom.badgePhaseStatus.classList.add("hidden");
+      }
+    }
+
+    function updateScoreboardUI(pulseTeam = 0) {
+      dom.team1StreakText.textContent = String(state.team1.streak);
+      dom.team2StreakText.textContent = String(state.team2.streak);
+      const total = state.team1.score + state.team2.score;
+      const pct1 = total === 0 ? 50 : Math.min(90, Math.max(10, (state.team1.score / total) * 100));
+      dom.tugBarTeam1.style.width = `${pct1}%`;
+      dom.tugBarTeam2.style.width = `${100 - pct1}%`;
+
+      if (pulseTeam === 1) {
+        dom.scoreBoxTeam1.classList.remove("score-pulse");
+        void dom.scoreBoxTeam1.offsetWidth;
+        dom.scoreBoxTeam1.classList.add("score-pulse");
+      } else if (pulseTeam === 2) {
+        dom.scoreBoxTeam2.classList.remove("score-pulse");
+        void dom.scoreBoxTeam2.offsetWidth;
+        dom.scoreBoxTeam2.classList.add("score-pulse");
+      }
+    }
+
+    function loadQuestion(index) {
+      if (index >= state.questions.length) {
+        finishGame();
+        return;
+      }
+
+      state.currentQuestionIndex = index;
+      state.questionResolved = false;
+      state.maxTimePerQuestion = Math.min(120, Math.max(5, parseInt(dom.inputWaktuSoal.value, 10) || 20));
+      state.timeRemaining = state.maxTimePerQuestion;
+      state.team1.lockTimer = 0;
+      state.team2.lockTimer = 0;
+      dom.lockOverlay1.classList.add("hidden");
+      dom.lockOverlay2.classList.add("hidden");
+      dom.roundBannerOverlay.classList.add("hidden");
+
+      state.phase1Duration = computePhase1Duration(state.maxTimePerQuestion);
+      state.phase1Elapsed = 0;
+      state.hasTriggeredDropAlert = false;
+      state.dropAlertBannerTimer = 0;
+
+      const qObj = state.questions[index];
+      dom.badgeQuestionNum.textContent = `Soal ${index + 1}/${state.questions.length}`;
+      dom.questionDisplay.textContent = qObj.soal;
+
+      const len = qObj.soal.length;
+      if (len > 140) dom.questionDisplay.style.fontSize = "clamp(18px, 1.8vw, 24px)";
+      else if (len > 90) dom.questionDisplay.style.fontSize = "clamp(20px, 2.1vw, 28px)";
+      else dom.questionDisplay.style.fontSize = "clamp(23px, 2.4vw, 32px)";
+
+      // Acak posisi 4 pilihan jawaban secara adil
+      const shuffledOptions = qObj.pilihan.map((text, idx) => ({
+        text,
+        isCorrect: idx === qObj.jawabanBenar
+      }));
+      for (let i = shuffledOptions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]];
+      }
+
+      spawnBalloonsForTeams(shuffledOptions);
+      updateTimerBarUI();
+    }
+
+    function spawnBalloonsForTeams(options) {
+      state.balloons = [];
+      const halfW = canvasWidth / 2;
+      const baseSpeed = getCurrentBaseBalloonSpeed();
+      const gbSpeed = CONFIG.kecepatanGerakBebasMap[CONFIG.gerakBebas.kecepatan] || 135;
+
+      [1, 2].forEach((teamId) => {
+        const teamLeft = teamId === 1 ? 14 : halfW + 14;
+        const teamRight = teamId === 1 ? halfW - 14 : canvasWidth - 14;
+        const teamWidth = Math.max(160, teamRight - teamLeft);
+
+        const itemSpecs = options.map((opt) => {
+          const sizeMult = getTextAutoSizeMultiplier(opt.text);
+          const randomVar = CONFIG.variasiAcak ? (0.9 + Math.random() * 0.2) : 1.0;
+          return {
+            opt,
+            sizeMult,
+            randomVar,
+            desiredRadius: getEffectiveBalloonRadius(sizeMult, randomVar)
+          };
+        });
+
+        const layout = computeTeamBalloonLayout(teamLeft, teamWidth, itemSpecs);
+        const topZoneY = 102;
+
+        itemSpecs.forEach((spec, i) => {
+          const { opt, sizeMult, randomVar } = spec;
+          const targetRadius = spec.desiredRadius * layout.fitScale;
+          const pos = layout.positions[i];
+          const baseX = pos.x;
+          const rowOffsetY = pos.row * (targetRadius * 1.65);
+
+          const startY = (CONFIG.gerakBebas.aktif && state.phase1Duration > 0)
+            ? (topZoneY + targetRadius + rowOffsetY)
+            : (-targetRadius - rowOffsetY - Math.random() * 20);
+
+          const angle = (i * 1.57) + (teamId * 0.8) + (Math.random() * 0.6 - 0.3);
+          const vx = Math.cos(angle) * gbSpeed;
+          const vyHover = Math.sin(angle) * gbSpeed * 0.65;
+
+          state.balloons.push({
+            id: `${teamId}-${i}-${Math.random()}`,
+            teamId,
+            slotIndex: i,
+            text: opt.text,
+            isCorrect: opt.isCorrect,
+            sizeMult,
+            randomVar,
+            baseX,
+            targetBaseX: baseX,
+            x: baseX,
+            y: startY,
+            vx,
+            vyHover,
+            wanderAngle: angle,
+            patternPhase: (i * Math.PI * 0.5) + (teamId * 0.7),
+            radius: targetRadius,
+            targetRadius: targetRadius,
+            vy: baseSpeed * (0.95 + Math.random() * 0.12),
+            swayPhase: Math.random() * Math.PI * 2,
+            swayAmp: 14,
+            shakeOffset: 0,
+            palette: BALLOON_PALETTES[i % BALLOON_PALETTES.length],
+            popped: false,
+            highlightCorrect: false,
+            scale: 1
+          });
+        });
+      });
+    }
+
+    // Resolusi tabrakan elastis antar balon per tim agar tidak bertumpuk atau bergetar
+    function resolveTeamBalloonCollisions(teamBalloons, minXFn, maxXFn, minY, maxY) {
+      for (let i = 0; i < teamBalloons.length; i++) {
+        const a = teamBalloons[i];
+        if (a.popped) continue;
+        for (let j = i + 1; j < teamBalloons.length; j++) {
+          const b = teamBalloons[j];
+          if (b.popped) continue;
+
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const dist = Math.hypot(dx, dy);
+          const minDist = a.radius + b.radius + 6;
+
+          if (dist < minDist) {
+            const nx = dist > 0.001 ? dx / dist : (Math.cos(i + j) || 1);
+            const ny = dist > 0.001 ? dy / dist : (Math.sin(i + j) || 0);
+            const overlap = (minDist - dist) * 0.5;
+
+            a.x -= nx * overlap;
+            a.y -= ny * overlap;
+            b.x += nx * overlap;
+            b.y += ny * overlap;
+
+            const rvx = b.vx - a.vx;
+            const rvy = b.vyHover - a.vyHover;
+            const velAlongNormal = rvx * nx + rvy * ny;
+            if (velAlongNormal < 0) {
+              const impulse = -1.9 * velAlongNormal * 0.5;
+              a.vx -= impulse * nx;
+              a.vyHover -= impulse * ny;
+              b.vx += impulse * nx;
+              b.vyHover += impulse * ny;
+            }
+          }
+        }
+
+        const tMinX = minXFn(a);
+        const tMaxX = maxXFn(a);
+        if (tMinX <= tMaxX) {
+          if (a.x < tMinX) { a.x = tMinX; a.vx = Math.abs(a.vx); }
+          if (a.x > tMaxX) { a.x = tMaxX; a.vx = -Math.abs(a.vx); }
+        } else {
+          a.x = (tMinX + tMaxX) * 0.5;
+        }
+        const bMinY = minY + a.radius;
+        const bMaxY = maxY - a.radius;
+        if (bMinY <= bMaxY) {
+          if (a.y < bMinY) { a.y = bMinY; a.vyHover = Math.abs(a.vyHover); }
+          if (a.y > bMaxY) { a.y = bMaxY; a.vyHover = -Math.abs(a.vyHover); }
+        }
+      }
+    }
+
+    function updateBalloons(dt) {
+      const halfW = canvasWidth / 2;
+      const sidePad = 12;
+      const topBound = 92;
+      const teamAreaHeight = Math.max(240, canvasHeight - topBound - 56);
+
+      // Sesuaikan zona melayang otomatis jika balon berukuran Jumbo agar ruang cukup & tidak bergetar
+      const maxActiveRadius = state.balloons.reduce((m, b) => (!b.popped && b.radius > m ? b.radius : m), 60);
+      const isJumboSpace = maxActiveRadius > 95;
+      const rawVertPct = CONFIG.gerakBebas.jangkauanVertikal / 100;
+      const effectiveVertPct = isJumboSpace ? Math.min(rawVertPct, 0.22) : rawVertPct;
+      const minHoverHeight = Math.max(200, maxActiveRadius * 3.7);
+      const hoverZoneBottom = Math.min(
+        topBound + teamAreaHeight * (isJumboSpace ? 0.78 : 0.66),
+        Math.max(topBound + minHoverHeight, topBound + teamAreaHeight * (0.3 + effectiveVertPct * 0.6))
+      );
+
+      const gbSpeed = CONFIG.kecepatanGerakBebasMap[CONFIG.gerakBebas.kecepatan] || 135;
+      const pola = CONFIG.gerakBebas.pola;
+      const gbEnabled = CONFIG.gerakBebas.aktif && state.phase1Duration > 0;
+      const isPhase1 = gbEnabled && (state.phase1Elapsed < state.phase1Duration);
+
+      if (gbEnabled && !isPhase1 && !state.hasTriggeredDropAlert && !state.questionResolved) {
+        state.hasTriggeredDropAlert = true;
+        state.dropAlertBannerTimer = 2.2;
+        if (CONFIG.gerakBebas.peringatan) {
+          sound.playDropWarning();
+          for (const b of state.balloons) {
+            if (!b.popped) b.shakeOffset = 9;
+          }
+        }
+      }
+
+      if (state.dropAlertBannerTimer > 0) {
+        state.dropAlertBannerTimer = Math.max(0, state.dropAlertBannerTimer - dt);
+      }
+
+      const timeSincePhase2 = Math.max(0, state.phase1Elapsed - state.phase1Duration);
+      const hoverDamping = isPhase1 ? 1.0 : Math.max(0, 1 - timeSincePhase2);
+
+      for (const b of state.balloons) {
+        if (b.popped) continue;
+
+        b.radius += (b.targetRadius - b.radius) * Math.min(1, dt * 10);
+        b.baseX += (b.targetBaseX - b.baseX) * Math.min(1, dt * 8);
+        if (b.shakeOffset > 0) b.shakeOffset = Math.max(0, b.shakeOffset - dt * 28);
+
+        const teamMinX = (b.teamId === 1 ? sidePad : halfW + sidePad) + b.radius + 4;
+        const teamMaxX = (b.teamId === 1 ? halfW - sidePad : canvasWidth - sidePad) - b.radius - 4;
+        const safeSpanX = Math.max(10, teamMaxX - teamMinX);
+        const centerX = (teamMinX + teamMaxX) / 2;
+        const minY = topBound + b.radius + 4;
+        const maxY = Math.max(minY + 18, hoverZoneBottom - b.radius);
+        const centerY = (minY + maxY) / 2;
+        const spanY = Math.max(6, (maxY - minY) / 2);
+
+        if (isPhase1) {
+          b.patternPhase += dt * (gbSpeed / 95);
+
+          if (pola === "acak") {
+            b.wanderAngle += (Math.sin(b.patternPhase * 1.3 + b.slotIndex) * 1.3 + (Math.random() - 0.5) * 1.4) * dt;
+            const targetVx = Math.cos(b.wanderAngle) * gbSpeed;
+            const targetVy = Math.sin(b.wanderAngle) * gbSpeed * 0.6;
+            b.vx += (targetVx - b.vx) * Math.min(1, dt * 2.5);
+            b.vyHover += (targetVy - b.vyHover) * Math.min(1, dt * 2.5);
+            b.x += b.vx * dt;
+            b.y += b.vyHover * dt;
+          } else if (pola === "kanan_kiri") {
+            if (Math.abs(b.vx) < gbSpeed * 0.5) b.vx = (b.vx >= 0 ? 1 : -1) * gbSpeed * 1.1;
+            b.x += b.vx * dt;
+            const targetY = centerY + Math.sin(b.patternPhase * 1.4 + b.slotIndex) * (spanY * 0.5);
+            b.y += (targetY - b.y) * Math.min(1, dt * 3);
+          } else if (pola === "angka_delapan") {
+            const t = b.patternPhase * 0.85;
+            const ampX = Math.min(safeSpanX * 0.42, 130);
+            const ampY = Math.min(spanY * 0.75, 50);
+            const targetX = centerX + Math.sin(t) * ampX;
+            const targetY = centerY + Math.sin(t * 2) * 0.5 * ampY;
+            b.vx = (targetX - b.x) * 4;
+            b.vyHover = (targetY - b.y) * 4;
+            b.x += b.vx * dt;
+            b.y += b.vyHover * dt;
+          } else {
+            const mag = Math.hypot(b.vx, b.vyHover);
+            if (mag < gbSpeed * 0.7 || mag > gbSpeed * 1.35) {
+              const ang = Math.atan2(b.vyHover || 0.4, b.vx || 1);
+              b.vx = Math.cos(ang) * gbSpeed;
+              b.vyHover = Math.sin(ang) * gbSpeed * 0.75;
+            }
+            b.x += b.vx * dt;
+            b.y += b.vyHover * dt;
+          }
+
+          if (b.x <= teamMinX) { b.x = teamMinX; b.vx = Math.abs(b.vx); b.wanderAngle = Math.atan2(b.vyHover, b.vx); }
+          else if (b.x >= teamMaxX) { b.x = teamMaxX; b.vx = -Math.abs(b.vx); b.wanderAngle = Math.atan2(b.vyHover, b.vx); }
+
+          if (b.y <= minY) { b.y = minY; b.vyHover = Math.abs(b.vyHover); b.wanderAngle = Math.atan2(b.vyHover, b.vx); }
+          else if (b.y >= maxY) { b.y = maxY; b.vyHover = -Math.abs(b.vyHover); b.wanderAngle = Math.atan2(b.vyHover, b.vx); }
+        } else {
+          if (hoverDamping > 0) b.x += b.vx * hoverDamping * 0.45 * dt;
+          b.swayPhase += dt * 2.2;
+          const swaySpeed = Math.cos(b.swayPhase) * b.swayAmp * 1.5;
+          b.x += swaySpeed * (1 - hoverDamping) * dt;
+
+          if (b.x <= teamMinX) { b.x = teamMinX; b.vx = Math.abs(b.vx); }
+          if (b.x >= teamMaxX) { b.x = teamMaxX; b.vx = -Math.abs(b.vx); }
+
+          const minSliderVy = getCurrentBaseBalloonSpeed();
+          let dropVy = Math.max(minSliderVy, b.vy);
+          if (gbEnabled) {
+            const distToBottom = Math.max(60, (canvasHeight - 36) - b.y);
+            const timeLeft = Math.max(1.0, state.timeRemaining);
+            const neededVy = distToBottom / timeLeft;
+            dropVy = Math.max(minSliderVy, neededVy);
+          }
+
+          const dropRamp = gbEnabled ? Math.min(1, 0.35 + timeSincePhase2 * 1.1) : 1;
+          b.y += dropVy * dropRamp * dt;
+        }
+      }
+
+      [1, 2].forEach((teamId) => {
+        const teamBalloons = state.balloons.filter((b) => b.teamId === teamId && !b.popped);
+        const minXFn = (b) => (teamId === 1 ? sidePad : halfW + sidePad) + b.radius + 4;
+        const maxXFn = (b) => (teamId === 1 ? halfW - sidePad : canvasWidth - sidePad) - b.radius - 4;
+        const maxYForPhase = isPhase1 ? hoverZoneBottom : (canvasHeight + 160);
+        resolveTeamBalloonCollisions(teamBalloons, minXFn, maxXFn, topBound + 4, maxYForPhase);
+      });
+    }
+
+    function spawnExplosionParticles(x, y, colors, count = 28, scaleFactor = 1) {
+      for (let i = 0; i < count; i++) {
+        if (state.particles.length >= CONFIG.maksPartikel) state.particles.shift();
+        const angle = (Math.PI * 2 * i) / count + Math.random() * 0.4;
+        const speed = (90 + Math.random() * 240) * scaleFactor;
+        state.particles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 40,
+          size: (4 + Math.random() * 6) * Math.min(1.4, scaleFactor),
+          color: colors[i % colors.length],
+          life: 1.0,
+          decay: 1.1 + Math.random() * 0.7,
+          isConfetti: i % 2 === 0,
+          rot: Math.random() * Math.PI * 2,
+          vRot: (Math.random() - 0.5) * 10
+        });
+      }
+      state.shockwaves.push({
+        x,
+        y,
+        radius: 16 * scaleFactor,
+        maxRadius: 135 * scaleFactor,
+        color: colors[0],
+        alpha: 0.9
+      });
+    }
+
+    function spawnFloatingText(x, y, text, color) {
+      state.floatingTexts.push({ x, y, text, color, life: 1.0 });
+    }
+
+    function triggerTeamFlash(teamId, type) {
+      const el = teamId === 1 ? dom.team1AreaOverlay : dom.team2AreaOverlay;
+      if (type === "correct") {
+        el.style.backgroundColor = "rgba(16, 185, 129, 0.25)";
+        setTimeout(() => { el.style.backgroundColor = "transparent"; }, 300);
+      } else {
+        el.style.backgroundColor = "rgba(244, 63, 94, 0.28)";
+        el.classList.remove("shake-effect");
+        void el.offsetWidth;
+        el.classList.add("shake-effect");
+        setTimeout(() => { el.style.backgroundColor = "transparent"; }, 350);
+      }
+    }
+
+    function handleBalloonTouch(balloon) {
+      if (balloon.popped || state.questionResolved || state.status !== "PLAYING") return;
+
+      const teamId = balloon.teamId;
+      const teamState = teamId === 1 ? state.team1 : state.team2;
+      if (teamState.lockTimer > 0) return;
+
+      // Tandai balon segera agar tidak memicu skor ganda
+      balloon.popped = true;
+      const sizeScale = Math.max(0.75, balloon.radius / 85);
+
+      if (balloon.isCorrect) {
+        state.questionResolved = true;
+        sound.playCorrect();
+
+        const timeRatio = Math.max(0, state.timeRemaining / Math.max(1, state.maxTimePerQuestion));
+        const speedBonus = Math.round(timeRatio * CONFIG.bonusKecepatanMaks);
+        teamState.streak += 1;
+        teamState.correctCount += 1;
+        const streakBonus = teamState.streak >= CONFIG.syaratStreakBonus ? CONFIG.poinBonusStreak : 0;
+        const totalGained = CONFIG.poinBenar + speedBonus + streakBonus;
+        teamState.score += totalGained;
+
+        spawnExplosionParticles(balloon.x, balloon.y, ["#34d399", "#fbbf24", "#38bdf8", "#a78bfa"], 45, sizeScale * 1.15);
+        spawnFloatingText(balloon.x, balloon.y - 20, `+${totalGained}! MANTAP! 🎉`, "#34d399");
+        if (streakBonus > 0) {
+          spawnFloatingText(balloon.x, balloon.y - 54, `COMBO x${teamState.streak} 🔥 +${streakBonus}`, "#fbbf24");
+        }
+        triggerTeamFlash(teamId, "correct");
+        updateScoreboardUI(teamId);
+
+        // Pecahkan semua balon lain
+        state.balloons.forEach((other) => {
+          if (!other.popped) {
+            other.popped = true;
+            spawnExplosionParticles(other.x, other.y, [other.palette.top, "#ffffff"], 12, 0.8);
+          }
+        });
+
+        const teamName = teamId === 1 ? dom.scoreboardTeam1Name.value : dom.scoreboardTeam2Name.value;
+        dom.roundBannerCard.className = "px-6 py-4 rounded-3xl bg-slate-900/95 border-2 border-emerald-400 shadow-2xl text-center backdrop-blur-md";
+        dom.roundBannerEmoji.textContent = "🎉🔥";
+        dom.roundBannerTitle.textContent = `${teamName} Menjawab Benar! (+${totalGained})`;
+        dom.roundBannerSub.textContent = "Lanjut soal berikutnya dalam 2 detik...";
+        dom.roundBannerOverlay.classList.remove("hidden");
+
+        clearTimeout(roundTransitionTimeout);
+        roundTransitionTimeout = setTimeout(() => {
+          if (state.status === "PLAYING") loadQuestion(state.currentQuestionIndex + 1);
+        }, 2000);
+      } else {
+        // Jawaban Salah
+        sound.playWrong();
+        teamState.score = Math.max(0, teamState.score - CONFIG.penaltiSalah);
+        teamState.streak = 0;
+        teamState.lockTimer = CONFIG.durasiKunciSalah;
+
+        if (teamId === 1) dom.lockOverlay1.classList.remove("hidden");
+        else dom.lockOverlay2.classList.remove("hidden");
+
+        spawnExplosionParticles(balloon.x, balloon.y, ["#f43f5e", "#fb7185", "#fda4af"], 28, sizeScale);
+        spawnFloatingText(balloon.x, balloon.y - 16, `Oops! -${CONFIG.penaltiSalah} 💥`, "#fb7185");
+        triggerTeamFlash(teamId, "wrong");
+        updateScoreboardUI(teamId);
+      }
+    }
+
+    function handleTimeUpOrAllFallen() {
+      if (state.questionResolved) return;
+      state.questionResolved = true;
+      sound.playWrong();
+
+      state.balloons.forEach((b) => {
+        if (!b.popped) {
+          if (b.isCorrect) {
+            b.highlightCorrect = true;
+            b.scale = 1.18;
+            spawnExplosionParticles(b.x, b.y, ["#34d399", "#fbbf24"], 22, 1.0);
+          } else {
+            b.popped = true;
+            spawnExplosionParticles(b.x, b.y, [b.palette.top, "#94a3b8"], 10, 0.7);
+          }
+        }
+      });
+
+      const qObj = state.questions[state.currentQuestionIndex];
+      const correctText = qObj ? qObj.pilihan[qObj.jawabanBenar] : "";
+      dom.roundBannerCard.className = "px-6 py-4 rounded-3xl bg-slate-900/95 border-2 border-amber-400 shadow-2xl text-center backdrop-blur-md";
+      dom.roundBannerEmoji.textContent = "⏰";
+      dom.roundBannerTitle.textContent = "Waktu Habis!";
+      dom.roundBannerSub.textContent = `Jawaban Benar: ${correctText}`;
+      dom.roundBannerOverlay.classList.remove("hidden");
+
+      clearTimeout(roundTransitionTimeout);
+      roundTransitionTimeout = setTimeout(() => {
+        if (state.status === "PLAYING") loadQuestion(state.currentQuestionIndex + 1);
+      }, 2000);
+    }
+
+    function checkCursorBalloonCollisions() {
+      if (state.status !== "PLAYING" || state.questionResolved) return;
+      const halfW = canvasWidth / 2;
+
+      [1, 2].forEach((teamId) => {
+        const cursor = teamId === 1 ? state.cursors.t1 : state.cursors.t2;
+        const teamState = teamId === 1 ? state.team1 : state.team2;
+        if (!cursor.active || teamState.lockTimer > 0) return;
+
+        // Pastikan kursor tidak menyeberang garis tengah ke wilayah lawan
+        if (teamId === 1 && cursor.x > halfW) return;
+        if (teamId === 2 && cursor.x < halfW) return;
+
+        for (const b of state.balloons) {
+          if (b.popped || b.teamId !== teamId) continue;
+          const hitRadius = b.radius * CONFIG.hitbox;
+          const dist = Math.hypot(cursor.x - b.x, cursor.y - b.y);
+          if (dist <= hitRadius) {
+            handleBalloonTouch(b);
+            break;
+          }
+        }
+      });
+    }
+
+    function wrapBalloonText(context, text, maxWidth, fontSize) {
+      context.font = `800 ${fontSize}px Inter, sans-serif`;
+      const words = String(text || "").split(" ");
+      const lines = [];
+      let currentLine = "";
+
+      for (const word of words) {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        if (context.measureText(testLine).width <= maxWidth) {
+          currentLine = testLine;
+        } else {
+          if (currentLine) lines.push(currentLine);
+          currentLine = word;
+        }
+      }
+      if (currentLine) lines.push(currentLine);
+      return lines;
+    }
+
+    function drawBalloon(b) {
+      if (b.popped) return;
+      const jitterX = b.shakeOffset > 0 ? Math.sin(performance.now() * 0.08 + b.slotIndex) * b.shakeOffset : 0;
+
+      ctx.save();
+      ctx.translate(b.x + jitterX, b.y);
+      ctx.scale(b.scale, b.scale);
+
+      // Tali balon bawah
+      ctx.beginPath();
+      ctx.moveTo(0, b.radius);
+      ctx.quadraticCurveTo(6, b.radius + 14, -3, b.radius + 25);
+      ctx.strokeStyle = "rgba(255,255,255,0.45)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Lingkaran gradien glossy
+      const grad = ctx.createRadialGradient(-b.radius * 0.3, -b.radius * 0.35, b.radius * 0.1, 0, 0, b.radius);
+      if (b.highlightCorrect) {
+        grad.addColorStop(0, "#6ee7b7");
+        grad.addColorStop(0.55, "#10b981");
+        grad.addColorStop(1, "#047857");
+      } else {
+        grad.addColorStop(0, b.palette.top);
+        grad.addColorStop(0.6, b.palette.mid);
+        grad.addColorStop(1, b.palette.bot);
+      }
+
+      ctx.beginPath();
+      ctx.arc(0, 0, b.radius, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.shadowColor = b.highlightCorrect ? "rgba(52,211,153,0.9)" : b.palette.glow;
+      ctx.shadowBlur = b.highlightCorrect ? 28 : 16;
+      ctx.fill();
+
+      ctx.lineWidth = b.highlightCorrect ? 4 : 2.5;
+      ctx.strokeStyle = b.highlightCorrect ? "#ffffff" : "rgba(255,255,255,0.75)";
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Kilap putih kecil (glossy highlight)
+      ctx.beginPath();
+      ctx.ellipse(-b.radius * 0.34, -b.radius * 0.36, b.radius * 0.22, b.radius * 0.11, -Math.PI / 4, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255,255,255,0.42)";
+      ctx.fill();
+
+      // Teks Jawaban Auto-Fit di Tengah Balon
+      const maxTextW = b.radius * 1.56;
+      let fontSize = Math.min(28, Math.max(14, Math.round(b.radius * 0.27)));
+      let lines = wrapBalloonText(ctx, b.text, maxTextW, fontSize);
+      while ((lines.length > 3 || lines.some((l) => ctx.measureText(l).width > maxTextW)) && fontSize > 12) {
+        fontSize -= 1;
+        lines = wrapBalloonText(ctx, b.text, maxTextW, fontSize);
+      }
+
+      ctx.font = `800 ${fontSize}px Inter, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      const lineHeight = fontSize * 1.18;
+      const startY = -((lines.length - 1) * lineHeight) / 2;
+
+      lines.forEach((line, idx) => {
+        const ly = startY + idx * lineHeight;
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "rgba(2, 6, 23, 0.88)";
+        ctx.strokeText(line, 0, ly);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(line, 0, ly);
+      });
+
+      ctx.restore();
+    }
+
+    function updateAndDrawEffects(dt) {
+      // Shockwaves
+      for (let i = state.shockwaves.length - 1; i >= 0; i--) {
+        const sw = state.shockwaves[i];
+        sw.radius += 340 * dt;
+        sw.alpha -= 2.2 * dt;
+        if (sw.alpha <= 0) {
+          state.shockwaves.splice(i, 1);
+          continue;
+        }
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
+        ctx.strokeStyle = sw.color;
+        ctx.globalAlpha = Math.max(0, sw.alpha);
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Partikel & Confetti
+      for (let i = state.particles.length - 1; i >= 0; i--) {
+        const p = state.particles[i];
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vy += 320 * dt;
+        p.rot += p.vRot * dt;
+        p.life -= p.decay * dt;
+        if (p.life <= 0) {
+          state.particles.splice(i, 1);
+          continue;
+        }
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.globalAlpha = Math.max(0, p.life);
+        ctx.fillStyle = p.color;
+        if (p.isConfetti) ctx.fillRect(-p.size / 2, -p.size / 3, p.size, p.size * 0.65);
+        else {
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      // Teks Melayang (+10!, Oops! -3)
+      for (let i = state.floatingTexts.length - 1; i >= 0; i--) {
+        const ft = state.floatingTexts[i];
+        ft.y -= 55 * dt;
+        ft.life -= 0.9 * dt;
+        if (ft.life <= 0) {
+          state.floatingTexts.splice(i, 1);
+          continue;
+        }
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, ft.life);
+        ctx.font = "900 24px Inter, sans-serif";
+        ctx.textAlign = "center";
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = "rgba(2,6,23,0.9)";
+        ctx.strokeText(ft.text, ft.x, ft.y);
+        ctx.fillStyle = ft.color;
+        ctx.fillText(ft.text, ft.x, ft.y);
+        ctx.restore();
+      }
+    }
+
+    function drawHandCursorsAndSkeletons(dt) {
+      [1, 2].forEach((teamId) => {
+        const cur = teamId === 1 ? state.cursors.t1 : state.cursors.t2;
+        if (cur.active) cur.alpha = Math.min(1, cur.alpha + dt * 8);
+        else cur.alpha = Math.max(0, cur.alpha - dt * 3.5);
+
+        if (cur.alpha <= 0.01) return;
+
+        const mainColor = teamId === 1 ? "#22d3ee" : "#fb923c";
+        const glowColor = teamId === 1 ? "rgba(34,211,238,0.75)" : "rgba(251,146,60,0.75)";
+
+        // Jejak gerakan kursor
+        if (cur.trail.length > 1) {
+          for (let i = 1; i < cur.trail.length; i++) {
+            const prev = cur.trail[i - 1];
+            const curr = cur.trail[i];
+            const ratio = i / cur.trail.length;
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(prev.x, prev.y);
+            ctx.lineTo(curr.x, curr.y);
+            ctx.strokeStyle = mainColor;
+            ctx.globalAlpha = cur.alpha * ratio * 0.6;
+            ctx.lineWidth = 14 * ratio;
+            ctx.lineCap = "round";
+            ctx.stroke();
+            ctx.restore();
+          }
+        }
+
+        // Titik sendi tangan (Debug Skeleton)
+        if (state.showSkeleton && cur.landmarks) {
+          ctx.save();
+          ctx.globalAlpha = cur.alpha * 0.85;
+          ctx.fillStyle = mainColor;
+          for (const lm of cur.landmarks) {
+            const lx = (1 - lm.x) * canvasWidth;
+            const ly = lm.y * canvasHeight;
+            ctx.beginPath();
+            ctx.arc(lx, ly, 4, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+
+        // Lingkaran Kursor Ujung Telunjuk
+        ctx.save();
+        ctx.globalAlpha = cur.alpha;
+        ctx.beginPath();
+        ctx.arc(cur.x, cur.y, 18, 0, Math.PI * 2);
+        ctx.fillStyle = glowColor;
+        ctx.shadowColor = mainColor;
+        ctx.shadowBlur = 20;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(cur.x, cur.y, 9, 0, Math.PI * 2);
+        ctx.fillStyle = "#ffffff";
+        ctx.fill();
+        ctx.restore();
+      });
+    }
+
+    /* =====================================================================
+       BAGIAN F: DETEKSI KAMERA & MEDIAPIPE HAND LANDMARKER
+       ===================================================================== */
+    async function initHandLandmarker() {
+      if (state.handLandmarker || state.isGestureModelLoading) return;
+      state.isGestureModelLoading = true;
+      dom.gestureLoadingBox.classList.remove("hidden");
+      dom.gestureLoadingBox.classList.add("flex");
+
+      try {
+        const vision = await FilesetResolver.forVisionTasks(
+          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+        );
+        state.handLandmarker = await HandLandmarker.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+            delegate: "GPU"
+          },
+          runningMode: "VIDEO",
+          numHands: 4
+        });
+      } catch (err) {
+        dom.cameraErrorBox.innerHTML = "<strong>Gagal memuat model pengenal tangan.</strong> Otomatis beralih ke Mode Mouse/Sentuh.";
+        dom.cameraErrorBox.classList.remove("hidden");
+        enableMouseFallbackMode();
+      } finally {
+        state.isGestureModelLoading = false;
+        dom.gestureLoadingBox.classList.add("hidden");
+        dom.gestureLoadingBox.classList.remove("flex");
+      }
+    }
+
+    async function startCameraAndCalibration() {
+      dom.cameraErrorBox.classList.add("hidden");
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error("Browser tidak mendukung akses kamera.");
+        }
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+          audio: false
+        });
+        state.cameraStream = stream;
+        dom.cameraVideo.srcObject = stream;
+        await dom.cameraVideo.play();
+        state.cameraActive = true;
+        state.mouseMode = false;
+        updateModeButtonsUI();
+
+        await initHandLandmarker();
+        dom.cameraPermissionModal.classList.add("hidden");
+        startCalibrationPhase();
+      } catch (err) {
+        let pesan = "Kamera tidak dapat diakses. Anda dapat menggunakan Mode Mouse/Sentuh sebagai cadangan.";
+        if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+          pesan = "<strong>Izin Kamera Ditolak:</strong> Klik ikon gembok/kamera di bilah alamat browser, pilih <em>Izinkan (Allow)</em>, lalu klik Coba Lagi.";
+        } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+          pesan = "<strong>Kamera Tidak Ditemukan:</strong> Pastikan webcam terpasang atau gunakan Mode Mouse/Sentuh.";
+        } else if (err.name === "NotReadableError" || err.name === "TrackStartError") {
+          pesan = "<strong>Kamera Sedang Dipakai Aplikasi Lain:</strong> Tutup Zoom/Meet/Kamera lain lalu coba lagi.";
+        }
+        dom.cameraErrorBox.innerHTML = pesan;
+        dom.cameraErrorBox.classList.remove("hidden");
+      }
+    }
+
+    function stopCameraStream() {
+      if (state.cameraStream) {
+        state.cameraStream.getTracks().forEach((track) => track.stop());
+        state.cameraStream = null;
+      }
+      dom.cameraVideo.srcObject = null;
+      state.cameraActive = false;
+      updateModeButtonsUI();
+    }
+
+    function enableMouseFallbackMode() {
+      stopCameraStream();
+      state.mouseMode = true;
+      dom.cameraPermissionModal.classList.add("hidden");
+      dom.calibrationModal.classList.add("hidden");
+      updateModeButtonsUI();
+    }
+
+    function updateModeButtonsUI() {
+      dom.btnToggleCam.textContent = state.cameraActive ? "📷 Kamera: On" : "📷 Kamera: Off";
+      dom.btnToggleCam.className = state.cameraActive
+        ? "px-2.5 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-400/60 text-emerald-300 font-bold text-xs transition"
+        : "px-2.5 py-1.5 rounded-xl bg-slate-800 border border-slate-600 text-slate-300 font-bold text-xs transition";
+
+      dom.btnToggleMouseMode.textContent = state.mouseMode ? "🖱️ Mode Mouse: On" : "🖱️ Mode Mouse: Off";
+      dom.btnToggleMouseMode.className = state.mouseMode
+        ? "px-2.5 py-1.5 rounded-xl bg-purple-500/30 border border-purple-400 text-purple-200 font-bold text-xs transition"
+        : "px-2.5 py-1.5 rounded-xl bg-slate-800 border border-slate-600 text-slate-300 font-bold text-xs transition";
+    }
+
+    function startCalibrationPhase() {
+      state.status = "CALIBRATING";
+      state.calibTimer = 5;
+      state.calibDetected = { t1: false, t2: false };
+      dom.calibTimerText.textContent = "5";
+      dom.calibStatusTeam1.className = "p-3 rounded-2xl bg-slate-800 border border-slate-700 text-slate-400 font-bold text-xs";
+      dom.calibStatusTeam1.textContent = "⏳ Tim 1 (Kiri): Menunggu tangan...";
+      dom.calibStatusTeam2.className = "p-3 rounded-2xl bg-slate-800 border border-slate-700 text-slate-400 font-bold text-xs";
+      dom.calibStatusTeam2.textContent = "⏳ Tim 2 (Kanan): Menunggu tangan...";
+      dom.calibrationModal.classList.remove("hidden");
+
+      clearInterval(calibrationInterval);
+      calibrationInterval = setInterval(() => {
+        state.calibTimer -= 1;
+        dom.calibTimerText.textContent = String(Math.max(0, state.calibTimer));
+        if (state.calibTimer <= 0) {
+          clearInterval(calibrationInterval);
+          dom.calibrationModal.classList.add("hidden");
+          state.status = "IDLE";
+        }
+      }, 1000);
+    }
+
+    function processVideoHands() {
+      if (!state.cameraActive || !state.handLandmarker || dom.cameraVideo.readyState < 2) return;
+      try {
+        const results = state.handLandmarker.detectForVideo(dom.cameraVideo, performance.now());
+        let foundT1 = false;
+        let foundT2 = false;
+
+        if (results && results.landmarks) {
+          for (const lmList of results.landmarks) {
+            const wrist = lmList[0];
+            const indexTip = lmList[8];
+            if (!wrist || !indexTip) continue;
+
+            // Mirror koordinat X (1 - x) agar sesuai tampilan video mirror
+            const mirroredWristX = 1 - wrist.x;
+            const tipX = (1 - indexTip.x) * canvasWidth;
+            const tipY = indexTip.y * canvasHeight;
+
+            if (mirroredWristX < 0.5 && !foundT1) {
+              foundT1 = true;
+              updateSmoothedCursor(state.cursors.t1, tipX, tipY, lmList);
+              if (state.status === "CALIBRATING" && !state.calibDetected.t1) {
+                state.calibDetected.t1 = true;
+                dom.calibStatusTeam1.className = "p-3 rounded-2xl bg-emerald-950/80 border border-emerald-400 text-emerald-300 font-bold text-xs";
+                dom.calibStatusTeam1.textContent = "✅ Tim 1 Siap!";
+              }
+            } else if (mirroredWristX >= 0.5 && !foundT2) {
+              foundT2 = true;
+              updateSmoothedCursor(state.cursors.t2, tipX, tipY, lmList);
+              if (state.status === "CALIBRATING" && !state.calibDetected.t2) {
+                state.calibDetected.t2 = true;
+                dom.calibStatusTeam2.className = "p-3 rounded-2xl bg-emerald-950/80 border border-emerald-400 text-emerald-300 font-bold text-xs";
+                dom.calibStatusTeam2.textContent = "✅ Tim 2 Siap!";
+              }
+            }
+          }
+        }
+
+        if (!foundT1) state.cursors.t1.active = false;
+        if (!foundT2) state.cursors.t2.active = false;
+      } catch (e) {
+        // Abaikan frame error sesaat
+      }
+    }
+
+    function updateSmoothedCursor(cursorObj, targetX, targetY, landmarks) {
+      if (!cursorObj.active) {
+        cursorObj.x = targetX;
+        cursorObj.y = targetY;
+        cursorObj.trail = [];
+      } else {
+        cursorObj.x += (targetX - cursorObj.x) * 0.45;
+        cursorObj.y += (targetY - cursorObj.y) * 0.45;
+      }
+      cursorObj.active = true;
+      cursorObj.landmarks = landmarks;
+      cursorObj.trail.push({ x: cursorObj.x, y: cursorObj.y });
+      if (cursorObj.trail.length > 12) cursorObj.trail.shift();
+    }
+
+    /* =====================================================================
+       BAGIAN G: ALUR MULAI, JEDA, HITUNG MUNDUR, & SELESAI GAME
+       ===================================================================== */
+    function runCountdown(onComplete) {
+      clearInterval(countdownInterval);
+      state.status = "COUNTDOWN";
+      let count = 3;
+      dom.countdownNumber.textContent = "3";
+      dom.countdownOverlay.classList.remove("hidden");
+      sound.playCountdown(false);
+
+      countdownInterval = setInterval(() => {
+        count -= 1;
+        if (count > 0) {
+          dom.countdownNumber.textContent = String(count);
+          sound.playCountdown(false);
+        } else if (count === 0) {
+          dom.countdownNumber.textContent = "GO!";
+          sound.playCountdown(true);
+        } else {
+          clearInterval(countdownInterval);
+          dom.countdownOverlay.classList.add("hidden");
+          onComplete();
+        }
+      }, 650);
+    }
+
+    function startNewMatch() {
+      if (state.questions.length === 0) {
+        state.questions = BANK_SOAL_INFORMATIKA_SMP.slice(0, 10);
+        renderQuestionPreviewList();
+      }
+      sound.init();
+      clearTimeout(roundTransitionTimeout);
+      clearInterval(countdownInterval);
+      clearInterval(calibrationInterval);
+      dom.calibrationModal.classList.add("hidden");
+      dom.finalResultModal.classList.add("hidden");
+      dom.roundBannerOverlay.classList.add("hidden");
+
+      // Lipat panel atas otomatis agar area arena luas
+      setPanelCollapsed(true);
+
+      state.team1 = { score: 0, displayScore: 0, streak: 0, correctCount: 0, lockTimer: 0 };
+      state.team2 = { score: 0, displayScore: 0, streak: 0, correctCount: 0, lockTimer: 0 };
+      dom.team1ScoreDisplay.textContent = "0";
+      dom.team2ScoreDisplay.textContent = "0";
+      updateScoreboardUI();
+
+      dom.btnPauseResume.disabled = false;
+      dom.btnPauseResume.textContent = "⏸ Jeda";
+      dom.btnNextQuestion.disabled = false;
+
+      runCountdown(() => {
+        state.status = "PLAYING";
+        loadQuestion(0);
+      });
+    }
+
+    function pauseGameForPopup() {
+      if (state.status === "PLAYING") {
+        state.status = "PAUSED";
+        state.pausedByPopup = true;
+        dom.btnPauseResume.textContent = "▶ Lanjutkan";
+      }
+    }
+
+    function resumeGameWithCountdown() {
+      runCountdown(() => {
+        state.status = "PLAYING";
+        dom.btnPauseResume.textContent = "⏸ Jeda";
+      });
+    }
+
+    function finishGame() {
+      state.status = "FINISHED";
+      clearTimeout(roundTransitionTimeout);
+      dom.roundBannerOverlay.classList.add("hidden");
+      dom.btnPauseResume.disabled = true;
+      dom.btnNextQuestion.disabled = true;
+      sound.playWinFanfare();
+
+      const t1Name = dom.scoreboardTeam1Name.value || "Tim 1";
+      const t2Name = dom.scoreboardTeam2Name.value || "Tim 2";
+      dom.finalTeam1Name.textContent = t1Name;
+      dom.finalTeam2Name.textContent = t2Name;
+      dom.finalTeam1Score.textContent = String(state.team1.score);
+      dom.finalTeam2Score.textContent = String(state.team2.score);
+      dom.finalTeam1Correct.textContent = `Benar: ${state.team1.correctCount} soal`;
+      dom.finalTeam2Correct.textContent = `Benar: ${state.team2.correctCount} soal`;
+
+      if (state.team1.score > state.team2.score) {
+        dom.finalWinnerTitle.textContent = `PEMENANG: ${t1Name.toUpperCase()}!`;
+      } else if (state.team2.score > state.team1.score) {
+        dom.finalWinnerTitle.textContent = `PEMENANG: ${t2Name.toUpperCase()}!`;
+      } else {
+        dom.finalWinnerTitle.textContent = "PERTANDINGAN SERI!";
+      }
+
+      spawnExplosionParticles(canvasWidth * 0.3, canvasHeight * 0.4, ["#38bdf8", "#fbbf24", "#34d399"], 60, 1.3);
+      spawnExplosionParticles(canvasWidth * 0.7, canvasHeight * 0.4, ["#fb923c", "#f472b6", "#fbbf24"], 60, 1.3);
+      dom.finalResultModal.classList.remove("hidden");
+      stopCameraStream();
+    }
+
+    function setPanelCollapsed(collapsed) {
+      if (collapsed) {
+        dom.collapsiblePanelBody.classList.add("hidden");
+        dom.topControlWrapper.classList.add("hidden");
+        dom.floatingToolbarGroup.classList.remove("hidden");
+      } else {
+        dom.topControlWrapper.classList.remove("hidden");
+        dom.collapsiblePanelBody.classList.remove("hidden");
+        dom.floatingToolbarGroup.classList.add("hidden");
+      }
+      setTimeout(resizeGameCanvas, 40);
+    }
+
+    /* =====================================================================
+       BAGIAN H: KONTROL POPUP TOOLBAR (KECEPATAN, UKURAN, GERAK BEBAS)
+       ===================================================================== */
+    const SPEED_LABELS = {
+      1: "1 - Lambat",
+      2: "2 - Sedang",
+      3: "3 - Cepat",
+      4: "4 - Sangat Cepat",
+      5: "5 - Kilat"
+    };
+
+    const GB_SPEED_LABELS = {
+      1: "1 - Pelan",
+      2: "2 - Sedang",
+      3: "3 - Cepat",
+      4: "4 - Sangat Cepat",
+      5: "5 - Kilat"
+    };
+
+    function closeAllTopPopups(resumeIfWasPaused = true) {
+      const anyOpen =
+        !dom.popupSpeedPanel.classList.contains("hidden") ||
+        !dom.popupBalloonSizePanel.classList.contains("hidden") ||
+        !dom.popupGerakBebasPanel.classList.contains("hidden");
+
+      dom.popupSpeedPanel.classList.add("hidden");
+      dom.popupBalloonSizePanel.classList.add("hidden");
+      dom.popupGerakBebasPanel.classList.add("hidden");
+
+      if (anyOpen && resumeIfWasPaused && state.pausedByPopup && state.status === "PAUSED") {
+        state.pausedByPopup = false;
+        resumeGameWithCountdown();
+      }
+    }
+
+    function updateBalloonSizeUI() {
+      const r = CONFIG.ukuranBalon;
+      dom.sliderBalloonRadius.value = String(r);
+      dom.labelBalloonRadiusPx.textContent = `${r} px`;
+      dom.sliderHitboxMult.value = String(Math.round(CONFIG.hitbox * 100));
+      dom.labelHitboxPct.textContent = `${Math.round(CONFIG.hitbox * 100)}%`;
+      dom.toggleAutoTextSize.checked = CONFIG.autoSesuaikanTeks;
+      dom.toggleRandomSizeVar.checked = CONFIG.variasiAcak;
+
+      let activePreset = "kustom";
+      for (const [k, v] of Object.entries(CONFIG.presetUkuran)) {
+        if (v === r) activePreset = k;
+      }
+      dom.sizePresetBadge.textContent = activePreset.charAt(0).toUpperCase() + activePreset.slice(1);
+
+      document.querySelectorAll(".size-preset-btn").forEach((btn) => {
+        const isMatch = btn.dataset.sizePreset === activePreset;
+        btn.className = isMatch
+          ? "size-preset-btn py-1.5 rounded-lg bg-sky-600/30 border-2 border-sky-400 text-white font-bold"
+          : "size-preset-btn py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 font-bold";
+      });
+
+      // Cek apakah muat di area tim saat ini
+      const halfW = canvasWidth / 2;
+      const sampleSpecs = [
+        { desiredRadius: getEffectiveBalloonRadius(1.0, 1.0) },
+        { desiredRadius: getEffectiveBalloonRadius(getTextAutoSizeMultiplier("Algoritma & Pemrograman"), 1.0) },
+        { desiredRadius: getEffectiveBalloonRadius(1.0, 1.0) },
+        { desiredRadius: getEffectiveBalloonRadius(1.0, 1.0) }
+      ];
+      const checkLayout = computeTeamBalloonLayout(14, halfW - 28, sampleSpecs);
+      dom.previewFitWarning.classList.toggle("hidden", !checkLayout.shrunk);
+
+      recalculateActiveBalloonsLayout();
+      renderBalloonSizePreview();
+    }
+
+    function renderBalloonSizePreview() {
+      const cvs = dom.balloonPreviewCanvas;
+      if (!cvs) return;
+      const pctx = cvs.getContext("2d");
+      const W = cvs.width;
+      const H = cvs.height;
+      pctx.clearRect(0, 0, W, H);
+
+      const scaleDemo = 0.44;
+      const rShort = CONFIG.ukuranBalon * scaleDemo;
+      const rLong = CONFIG.ukuranBalon * getTextAutoSizeMultiplier("Jaringan Komputer & Internet") * scaleDemo;
+
+      const items = [
+        { x: 95, y: H / 2, r: rShort, color: "#0284c7", label: "CPU" },
+        { x: 225, y: H / 2, r: rLong, color: "#db2777", label: "Jaringan Komputer" }
+      ];
+
+      items.forEach((it) => {
+        // Lingkaran Hitbox putus-putus
+        pctx.beginPath();
+        pctx.arc(it.x, it.y, it.r * CONFIG.hitbox, 0, Math.PI * 2);
+        pctx.strokeStyle = "rgba(52, 211, 153, 0.7)";
+        pctx.setLineDash([4, 3]);
+        pctx.lineWidth = 1.5;
+        pctx.stroke();
+        pctx.setLineDash([]);
+
+        // Balon utama
+        pctx.beginPath();
+        pctx.arc(it.x, it.y, it.r, 0, Math.PI * 2);
+        pctx.fillStyle = it.color;
+        pctx.fill();
+        pctx.lineWidth = 2;
+        pctx.strokeStyle = "#ffffff";
+        pctx.stroke();
+
+        pctx.fillStyle = "#ffffff";
+        pctx.font = "bold 11px Inter, sans-serif";
+        pctx.textAlign = "center";
+        pctx.textBaseline = "middle";
+        pctx.fillText(it.label, it.x, it.y);
+      });
+    }
+
+    const previewGbState = {
+      elapsed: 0,
+      balloons: [
+        { x: 60, y: 38, vx: 70, vy: 32, r: 20, color: "#06b6d4", phase: 0.2, angle: 0.4 },
+        { x: 145, y: 52, vx: -65, vy: 28, r: 20, color: "#f97316", phase: 1.4, angle: 2.1 },
+        { x: 235, y: 36, vx: 60, vy: -30, r: 20, color: "#10b981", phase: 2.7, angle: -0.7 },
+        { x: 315, y: 55, vx: -75, vy: -26, r: 20, color: "#ec4899", phase: 4.0, angle: 1.1 }
+      ]
+    };
+
+    function resetPreviewGbBalloons() {
+      previewGbState.elapsed = 0;
+      const starts = [60, 145, 235, 315];
+      previewGbState.balloons.forEach((b, i) => {
+        b.x = starts[i];
+        b.y = 32 + (i % 2) * 18;
+        b.vx = (i % 2 === 0 ? 1 : -1) * 75;
+        b.vy = (i < 2 ? 1 : -1) * 32;
+      });
+    }
+
+    function updateGerakBebasUI() {
+      const gb = CONFIG.gerakBebas;
+      const totalQTime = Math.min(120, Math.max(5, parseInt(dom.inputWaktuSoal.value, 10) || 20));
+      const maxManual = Math.max(0, totalQTime - 5);
+
+      if (gb.detikManual > maxManual) gb.detikManual = maxManual;
+
+      state.phase1Duration = computePhase1Duration(state.maxTimePerQuestion || totalQTime);
+      updateTimerBarUI();
+
+      dom.toggleGerakBebasAktif.checked = gb.aktif;
+      dom.gerakBebasControlsWrap.classList.toggle("opacity-45", !gb.aktif);
+      dom.gerakBebasControlsWrap.classList.toggle("pointer-events-none", !gb.aktif);
+
+      document.querySelectorAll(".gb-mode-btn").forEach((btn) => {
+        const active = btn.dataset.gbMode === gb.mode;
+        btn.className = active
+          ? "gb-mode-btn px-2.5 py-2 rounded-xl bg-fuchsia-600/30 border-2 border-fuchsia-400 text-white font-bold text-center transition"
+          : "gb-mode-btn px-2.5 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 font-bold text-center transition";
+      });
+
+      dom.gbAutoSliderBox.classList.toggle("hidden", gb.mode !== "otomatis");
+      dom.gbManualSliderBox.classList.toggle("hidden", gb.mode !== "manual");
+
+      const autoSec = Math.round(computePhase1Duration(totalQTime) * 10) / 10;
+      dom.sliderGbPersen.value = String(gb.persen);
+      dom.labelGbPersen.textContent = `${gb.persen}% (= ${autoSec} dtk dari ${totalQTime} dtk)`;
+
+      dom.sliderGbManualDetik.max = String(Math.min(30, maxManual));
+      dom.sliderGbManualDetik.value = String(gb.detikManual);
+      dom.labelGbManualDetik.textContent = `${gb.detikManual} detik (maks ${Math.min(30, maxManual)} dtk)`;
+
+      dom.sliderGbSpeed.value = String(gb.kecepatan);
+      dom.labelGbSpeed.textContent = GB_SPEED_LABELS[gb.kecepatan] || "2 - Sedang";
+
+      document.querySelectorAll(".gb-pola-card").forEach((card) => {
+        const active = card.dataset.gbPola === gb.pola;
+        card.className = active
+          ? "gb-pola-card p-2 rounded-xl bg-fuchsia-600/30 border-2 border-fuchsia-400 text-left transition"
+          : "gb-pola-card p-2 rounded-xl bg-slate-800/90 border border-slate-700 hover:border-slate-500 text-left transition";
+      });
+
+      dom.sliderGbVertikal.value = String(gb.jangkauanVertikal);
+      dom.labelGbVertikal.textContent = `${gb.jangkauanVertikal}% tinggi area`;
+      dom.toggleGbHitungMundur.checked = gb.hitungMundur;
+      dom.toggleGbPeringatan.checked = gb.peringatan;
+
+      dom.mainPanelGbSummary.textContent = gb.aktif
+        ? `Aktif: Melayang & memantul ${autoSec} dtk (${gb.pola.replace("_", " ")}), lalu turun`
+        : "Nonaktif: Balon langsung turun dari atas saat soal dimulai";
+
+      document.querySelectorAll(".gb-quick-pill").forEach((pill) => {
+        const isOnPill = pill.dataset.gbQuick === "on";
+        const active = (gb.aktif && isOnPill) || (!gb.aktif && !isOnPill);
+        pill.className = active
+          ? "gb-quick-pill px-2.5 py-1 rounded-lg bg-fuchsia-600 text-white font-bold text-xs shadow transition"
+          : "gb-quick-pill px-2.5 py-1 rounded-lg text-slate-400 hover:text-white font-bold text-xs transition";
+      });
+    }
+
+    function updateGerakBebasPreviewFrame(dt) {
+      if (dom.popupGerakBebasPanel.classList.contains("hidden")) return;
+      const cvs = dom.gerakBebasPreviewCanvas;
+      const pctx = cvs.getContext("2d");
+      const W = cvs.width;
+      const H = cvs.height;
+      const gb = CONFIG.gerakBebas;
+
+      previewGbState.elapsed += dt;
+      if (previewGbState.elapsed > 5.8) resetPreviewGbBalloons();
+
+      const isHover = gb.aktif && previewGbState.elapsed < 3.6;
+      dom.previewGbStatusBadge.textContent = isHover ? "Fase 1: Gerak Bebas" : "Fase 2: Turun";
+      dom.previewGbStatusBadge.className = isHover
+        ? "px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-bold"
+        : "px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold";
+
+      const speedScale = (CONFIG.kecepatanGerakBebasMap[gb.kecepatan] || 135) / 135;
+      const vertFactor = Math.max(0.05, gb.jangkauanVertikal / 60);
+      const maxHoverY = 26 + vertFactor * 48;
+
+      pctx.clearRect(0, 0, W, H);
+      pctx.strokeStyle = "rgba(56, 189, 248, 0.25)";
+      pctx.setLineDash([4, 4]);
+      pctx.beginPath();
+      pctx.moveTo(0, maxHoverY + 20);
+      pctx.lineTo(W, maxHoverY + 20);
+      pctx.stroke();
+      pctx.setLineDash([]);
+
+      const bs = previewGbState.balloons;
+      for (let i = 0; i < bs.length; i++) {
+        const b = bs[i];
+        b.phase += dt * 2.5 * speedScale;
+        if (isHover) {
+          if (gb.pola === "kanan_kiri") {
+            b.x += b.vx * speedScale * dt;
+            b.y = 24 + vertFactor * 24 + Math.sin(b.phase + i) * (vertFactor * 16);
+          } else if (gb.pola === "angka_delapan") {
+            const cx = 65 + i * 82;
+            const cy = 26 + vertFactor * 24;
+            b.x = cx + Math.sin(b.phase) * 32;
+            b.y = cy + Math.sin(b.phase * 2) * (10 + vertFactor * 12);
+          } else if (gb.pola === "memantul") {
+            b.x += b.vx * speedScale * 1.15 * dt;
+            b.y += b.vy * speedScale * 1.15 * dt;
+          } else {
+            b.angle += Math.sin(b.phase + i) * 1.5 * dt;
+            b.x += Math.cos(b.angle) * 85 * speedScale * dt;
+            b.y += Math.sin(b.angle) * 55 * speedScale * vertFactor * dt;
+          }
+
+          if (b.x < b.r + 6) { b.x = b.r + 6; b.vx = Math.abs(b.vx); b.angle = Math.PI - b.angle; }
+          if (b.x > W - b.r - 6) { b.x = W - b.r - 6; b.vx = -Math.abs(b.vx); b.angle = Math.PI - b.angle; }
+          if (b.y < b.r + 4) { b.y = b.r + 4; b.vy = Math.abs(b.vy); b.angle = -b.angle; }
+          if (b.y > maxHoverY) { b.y = maxHoverY; b.vy = -Math.abs(b.vy); b.angle = -b.angle; }
+        } else {
+          b.y += 58 * dt;
+        }
+      }
+
+      for (let i = 0; i < bs.length; i++) {
+        for (let j = i + 1; j < bs.length; j++) {
+          const dx = bs[j].x - bs[i].x;
+          const dy = bs[j].y - bs[i].y;
+          const d = Math.hypot(dx, dy);
+          const minD = bs[i].r + bs[j].r + 3;
+          if (d < minD && d > 0.01) {
+            const nx = dx / d;
+            const ny = dy / d;
+            const ov = (minD - d) * 0.5;
+            bs[i].x -= nx * ov;
+            bs[i].y -= ny * ov;
+            bs[j].x += nx * ov;
+            bs[j].y += ny * ov;
+            const tvx = bs[i].vx;
+            bs[i].vx = bs[j].vx;
+            bs[j].vx = tvx;
+          }
+        }
+      }
+
+      for (let i = 0; i < bs.length; i++) {
+        const b = bs[i];
+        pctx.beginPath();
+        pctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        pctx.fillStyle = b.color;
+        pctx.fill();
+        pctx.lineWidth = 2;
+        pctx.strokeStyle = "rgba(255,255,255,0.8)";
+        pctx.stroke();
+
+        pctx.fillStyle = "#fff";
+        pctx.font = "bold 11px Inter, sans-serif";
+        pctx.textAlign = "center";
+        pctx.textBaseline = "middle";
+        pctx.fillText(`Opsi ${i + 1}`, b.x, b.y);
+      }
+    }
+
+    /* =====================================================================
+       BAGIAN I: LOOP ANIMASI UTAMA 60 FPS (DELTA TIME)
+       ===================================================================== */
+    let lastFrameTime = performance.now();
+
+    function gameLoop(now) {
+      try {
+        const dt = Math.min(0.05, Math.max(0.001, (now - lastFrameTime) / 1000));
+        lastFrameTime = now;
+
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+        // 1. Deteksi tangan kamera jika aktif
+        if (state.cameraActive) {
+          processVideoHands();
+        }
+
+        // 2. Pembaruan Timer Soal, Timer Fase Gerak Bebas, & Kunci Tim
+        if (state.status === "PLAYING" && !state.questionResolved) {
+          state.timeRemaining = Math.max(0, state.timeRemaining - dt);
+          state.phase1Elapsed += dt;
+          updateTimerBarUI();
+
+          if (state.team1.lockTimer > 0) {
+            state.team1.lockTimer = Math.max(0, state.team1.lockTimer - dt);
+            if (state.team1.lockTimer === 0) dom.lockOverlay1.classList.add("hidden");
+          }
+          if (state.team2.lockTimer > 0) {
+            state.team2.lockTimer = Math.max(0, state.team2.lockTimer - dt);
+            if (state.team2.lockTimer === 0) dom.lockOverlay2.classList.add("hidden");
+          }
+
+          const activeBalloons = state.balloons.filter((b) => !b.popped);
+          const allFallen = activeBalloons.length > 0 && activeBalloons.every((b) => b.y - b.radius > canvasHeight - 40);
+          if (state.timeRemaining <= 0 || allFallen) {
+            handleTimeUpOrAllFallen();
+          }
+        }
+
+        // 3. Animasi angka skor naik/turun halus
+        if (state.team1.displayScore !== state.team1.score) {
+          const diff1 = state.team1.score - state.team1.displayScore;
+          state.team1.displayScore += Math.sign(diff1) * Math.max(1, Math.ceil(Math.abs(diff1) * 0.25));
+          dom.team1ScoreDisplay.textContent = String(state.team1.displayScore);
+        }
+        if (state.team2.displayScore !== state.team2.score) {
+          const diff2 = state.team2.score - state.team2.displayScore;
+          state.team2.displayScore += Math.sign(diff2) * Math.max(1, Math.ceil(Math.abs(diff2) * 0.25));
+          dom.team2ScoreDisplay.textContent = String(state.team2.displayScore);
+        }
+
+        // 4. Update & Gambar Balon (Hanya bergerak saat PLAYING)
+        if (state.status === "PLAYING") {
+          updateBalloons(dt);
+          checkCursorBalloonCollisions();
+        }
+        for (const b of state.balloons) {
+          drawBalloon(b);
+        }
+
+        // 5. Gambar Efek Partikel & Kursor Tangan
+        updateAndDrawEffects(dt);
+        drawHandCursorsAndSkeletons(dt);
+        updateGerakBebasPreviewFrame(dt);
+      } catch (err) {
+        showFriendlyError(`Kesalahan animasi: ${err.message}`);
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    /* =====================================================================
+       BAGIAN J: PENDAFTARAN EVENT LISTENER & INISIALISASI DOMContentLoaded
+       ===================================================================== */
+    function bindAllEvents() {
+      dom.btnCloseErrorBanner.addEventListener("click", () => {
+        dom.globalErrorBanner.classList.add("hidden");
+      });
+
+      // Lipat & Tampilkan Panel Atas
+      dom.btnTogglePanel.addEventListener("click", () => setPanelCollapsed(true));
+      dom.btnShowPanelFloating.addEventListener("click", () => setPanelCollapsed(false));
+
+      // Tab Sumber Soal
+      document.querySelectorAll(".tab-source-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const tab = btn.dataset.tab;
+          document.querySelectorAll(".tab-source-btn").forEach((b) => {
+            b.className = b === btn
+              ? "tab-source-btn px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-bold"
+              : "tab-source-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-bold";
+          });
+          document.querySelectorAll(".tab-pane").forEach((p) => p.classList.add("hidden"));
+          const targetPane = document.getElementById(`tabContent-${tab}`);
+          if (targetPane) targetPane.classList.remove("hidden");
+        });
+      });
+
+      dom.btnGenerateAI.addEventListener("click", generateQuestionsWithAI);
+
+      dom.btnParseManual.addEventListener("click", () => {
+        const parsed = parseManualBlockText(dom.textareaManualQuestions.value);
+        if (parsed.length === 0) {
+          dom.manualParseStatus.textContent = "⚠️ Format belum sesuai (minimal 1 soal + 4 pilihan).";
+          return;
+        }
+        state.questions = parsed;
+        renderQuestionPreviewList();
+        dom.manualParseStatus.textContent = `✅ ${parsed.length} soal berhasil diproses!`;
+      });
+
+      dom.inputFileQuestions.addEventListener("change", (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const parsed = parseManualBlockText(String(ev.target.result || ""));
+          if (parsed.length === 0) {
+            dom.importFileStatus.textContent = "⚠️ Tidak ada soal valid terbaca dari file.";
+            return;
+          }
+          state.questions = parsed;
+          renderQuestionPreviewList();
+          dom.importFileStatus.textContent = `✅ ${parsed.length} soal dimuat dari ${file.name}`;
+        };
+        reader.readAsText(file);
+      });
+
+      dom.btnLoadBankSoal.addEventListener("click", () => {
+        state.questions = [...BANK_SOAL_INFORMATIKA_SMP];
+        renderQuestionPreviewList();
+      });
+
+      // Sinkronisasi Nama Tim
+      dom.inputTeam1Name.addEventListener("input", (e) => { dom.scoreboardTeam1Name.value = e.target.value; });
+      dom.scoreboardTeam1Name.addEventListener("input", (e) => { dom.inputTeam1Name.value = e.target.value; });
+      dom.inputTeam2Name.addEventListener("input", (e) => { dom.scoreboardTeam2Name.value = e.target.value; });
+      dom.scoreboardTeam2Name.addEventListener("input", (e) => { dom.inputTeam2Name.value = e.target.value; });
+
+      // Tombol Utama Game
+      dom.btnStartGame.addEventListener("click", startNewMatch);
+      dom.btnRestartGame.addEventListener("click", startNewMatch);
+
+      dom.btnPauseResume.addEventListener("click", () => {
+        if (state.status === "PLAYING") {
+          state.status = "PAUSED";
+          state.pausedByPopup = false;
+          dom.btnPauseResume.textContent = "▶ Lanjutkan";
+        } else if (state.status === "PAUSED") {
+          resumeGameWithCountdown();
+        }
+      });
+
+      dom.btnNextQuestion.addEventListener("click", () => {
+        if (state.status === "PLAYING" || state.status === "PAUSED") {
+          clearTimeout(roundTransitionTimeout);
+          state.status = "PLAYING";
+          dom.btnPauseResume.textContent = "⏸ Jeda";
+          loadQuestion(state.currentQuestionIndex + 1);
+        }
+      });
+
+      dom.btnToggleMute.addEventListener("click", () => {
+        sound.muted = !sound.muted;
+        dom.btnToggleMute.textContent = sound.muted ? "🔇 Bisukan" : "🔊 Suara";
+      });
+
+      dom.btnFullscreen.addEventListener("click", () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+          document.exitFullscreen().catch(() => {});
+        }
+      });
+
+      dom.btnToggleSkeleton.addEventListener("click", () => {
+        state.showSkeleton = !state.showSkeleton;
+        dom.btnToggleSkeleton.textContent = state.showSkeleton ? "🖐️ Titik: On" : "🖐️ Titik: Off";
+      });
+
+      // Kamera & Mode Mouse
+      dom.btnAllowCamera.addEventListener("click", startCameraAndCalibration);
+      dom.btnUseMouseFallback.addEventListener("click", enableMouseFallbackMode);
+      dom.btnSkipCalibration.addEventListener("click", () => {
+        clearInterval(calibrationInterval);
+        dom.calibrationModal.classList.add("hidden");
+        state.status = "IDLE";
+      });
+
+      dom.btnToggleCam.addEventListener("click", () => {
+        if (state.cameraActive) {
+          stopCameraStream();
+        } else {
+          dom.cameraPermissionModal.classList.remove("hidden");
+        }
+      });
+
+      dom.btnToggleMouseMode.addEventListener("click", () => {
+        if (state.mouseMode) {
+          state.mouseMode = false;
+          updateModeButtonsUI();
+        } else {
+          enableMouseFallbackMode();
+        }
+      });
+
+      // Pointer / Mouse / Sentuh di Area Game
+      function handlePointerMove(clientX, clientY) {
+        if (!state.mouseMode) return;
+        const rect = dom.gameStage.getBoundingClientRect();
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+        const halfW = canvasWidth / 2;
+
+        if (x < halfW) {
+          updateSmoothedCursor(state.cursors.t1, x, y, null);
+          state.cursors.t2.active = false;
+        } else {
+          updateSmoothedCursor(state.cursors.t2, x, y, null);
+          state.cursors.t1.active = false;
+        }
+      }
+
+      dom.gameStage.addEventListener("mousemove", (e) => handlePointerMove(e.clientX, e.clientY));
+      dom.gameStage.addEventListener("mousedown", (e) => {
+        handlePointerMove(e.clientX, e.clientY);
+        checkCursorBalloonCollisions();
+      });
+      dom.gameStage.addEventListener("touchstart", (e) => {
+        if (!state.mouseMode) return;
+        for (const t of e.touches) handlePointerMove(t.clientX, t.clientY);
+        checkCursorBalloonCollisions();
+      }, { passive: true });
+      dom.gameStage.addEventListener("touchmove", (e) => {
+        if (!state.mouseMode) return;
+        for (const t of e.touches) handlePointerMove(t.clientX, t.clientY);
+      }, { passive: true });
+
+      // Popup Kecepatan Balon
+      dom.btnSpeedPopup.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const willOpen = dom.popupSpeedPanel.classList.contains("hidden");
+        closeAllTopPopups(false);
+        if (willOpen) {
+          if (state.status === "PLAYING") pauseGameForPopup();
+          dom.popupSpeedPanel.classList.remove("hidden");
+        }
+      });
+      dom.btnSpeedFloating.addEventListener("click", (e) => {
+        e.stopPropagation();
+        setPanelCollapsed(false);
+        dom.btnSpeedPopup.click();
+      });
+      dom.sliderSpeedPopup.addEventListener("input", (e) => {
+        CONFIG.kecepatanBalon = parseInt(e.target.value, 10);
+        dom.labelSpeedPopup.textContent = SPEED_LABELS[CONFIG.kecepatanBalon] || "2 - Sedang";
+        const newSpeed = getCurrentBaseBalloonSpeed();
+        state.balloons.forEach((b) => { b.vy = newSpeed * (0.95 + Math.random() * 0.12); });
+      });
+
+      // Popup Ukuran Balon
+      dom.btnBalloonSizePopup.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const willOpen = dom.popupBalloonSizePanel.classList.contains("hidden");
+        closeAllTopPopups(false);
+        if (willOpen) {
+          if (state.status === "PLAYING") pauseGameForPopup();
+          dom.popupBalloonSizePanel.classList.remove("hidden");
+          updateBalloonSizeUI();
+        }
+      });
+      dom.btnBalloonSizeFloating.addEventListener("click", (e) => {
+        e.stopPropagation();
+        setPanelCollapsed(false);
+        dom.btnBalloonSizePopup.click();
+      });
+
+      document.querySelectorAll(".size-preset-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const preset = btn.dataset.sizePreset;
+          if (CONFIG.presetUkuran[preset]) {
+            CONFIG.ukuranBalon = CONFIG.presetUkuran[preset];
+            updateBalloonSizeUI();
+          }
+        });
+      });
+
+      dom.sliderBalloonRadius.addEventListener("input", (e) => {
+        CONFIG.ukuranBalon = parseInt(e.target.value, 10);
+        updateBalloonSizeUI();
+      });
+
+      dom.sliderHitboxMult.addEventListener("input", (e) => {
+        CONFIG.hitbox = parseInt(e.target.value, 10) / 100;
+        updateBalloonSizeUI();
+      });
+
+      dom.toggleAutoTextSize.addEventListener("change", (e) => {
+        CONFIG.autoSesuaikanTeks = e.target.checked;
+        updateBalloonSizeUI();
+      });
+
+      dom.toggleRandomSizeVar.addEventListener("change", (e) => {
+        CONFIG.variasiAcak = e.target.checked;
+        state.balloons.forEach((b) => {
+          b.randomVar = CONFIG.variasiAcak ? (0.9 + Math.random() * 0.2) : 1.0;
+        });
+        updateBalloonSizeUI();
+      });
+
+      dom.btnResetBalloonSize.addEventListener("click", () => {
+        CONFIG.ukuranBalon = 100;
+        CONFIG.hitbox = 1.15;
+        CONFIG.autoSesuaikanTeks = true;
+        CONFIG.variasiAcak = false;
+        updateBalloonSizeUI();
+      });
+
+      // Popup Gerak Bebas
+      dom.btnGerakBebasPopup.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const willOpen = dom.popupGerakBebasPanel.classList.contains("hidden");
+        closeAllTopPopups(false);
+        if (willOpen) {
+          if (state.status === "PLAYING") pauseGameForPopup();
+          dom.popupGerakBebasPanel.classList.remove("hidden");
+          resetPreviewGbBalloons();
+          updateGerakBebasUI();
+        }
+      });
+      dom.btnGerakBebasFloating.addEventListener("click", (e) => {
+        e.stopPropagation();
+        setPanelCollapsed(false);
+        dom.btnGerakBebasPopup.click();
+      });
+
+      dom.toggleGerakBebasAktif.addEventListener("change", (e) => {
+        CONFIG.gerakBebas.aktif = e.target.checked;
+        updateGerakBebasUI();
+      });
+
+      document.querySelectorAll(".gb-mode-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          CONFIG.gerakBebas.mode = btn.dataset.gbMode;
+          updateGerakBebasUI();
+        });
+      });
+
+      dom.sliderGbPersen.addEventListener("input", (e) => {
+        CONFIG.gerakBebas.persen = parseInt(e.target.value, 10);
+        updateGerakBebasUI();
+      });
+
+      dom.sliderGbManualDetik.addEventListener("input", (e) => {
+        CONFIG.gerakBebas.detikManual = parseInt(e.target.value, 10);
+        updateGerakBebasUI();
+      });
+
+      dom.sliderGbSpeed.addEventListener("input", (e) => {
+        CONFIG.gerakBebas.kecepatan = parseInt(e.target.value, 10);
+        updateGerakBebasUI();
+      });
+
+      document.querySelectorAll(".gb-pola-card").forEach((card) => {
+        card.addEventListener("click", () => {
+          CONFIG.gerakBebas.pola = card.dataset.gbPola;
+          updateGerakBebasUI();
+        });
+      });
+
+      dom.sliderGbVertikal.addEventListener("input", (e) => {
+        CONFIG.gerakBebas.jangkauanVertikal = parseInt(e.target.value, 10);
+        updateGerakBebasUI();
+      });
+
+      dom.toggleGbHitungMundur.addEventListener("change", (e) => {
+        CONFIG.gerakBebas.hitungMundur = e.target.checked;
+        updateGerakBebasUI();
+      });
+
+      dom.toggleGbPeringatan.addEventListener("change", (e) => {
+        CONFIG.gerakBebas.peringatan = e.target.checked;
+        updateGerakBebasUI();
+      });
+
+      dom.btnResetGerakBebas.addEventListener("click", () => {
+        CONFIG.gerakBebas = {
+          aktif: true,
+          mode: "otomatis",
+          persen: 40,
+          detikManual: 8,
+          kecepatan: 2,
+          pola: "acak",
+          jangkauanVertikal: 25,
+          hitungMundur: true,
+          peringatan: true
+        };
+        resetPreviewGbBalloons();
+        updateGerakBebasUI();
+      });
+
+      document.querySelectorAll(".gb-quick-pill").forEach((pill) => {
+        pill.addEventListener("click", () => {
+          CONFIG.gerakBebas.aktif = pill.dataset.gbQuick === "on";
+          updateGerakBebasUI();
+        });
+      });
+
+      dom.btnOpenGbFromMain.addEventListener("click", (e) => {
+        e.stopPropagation();
+        dom.btnGerakBebasPopup.click();
+      });
+
+      dom.inputWaktuSoal.addEventListener("input", () => {
+        const val = Math.min(120, Math.max(5, parseInt(dom.inputWaktuSoal.value, 10) || 20));
+        if (state.status === "IDLE") {
+          state.maxTimePerQuestion = val;
+          state.timeRemaining = val;
+        }
+        updateGerakBebasUI();
+      });
+
+      // Tutup popup jika klik tombol ✕ atau klik di luar area popup
+      document.querySelectorAll(".close-popup-btn").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          closeAllTopPopups(true);
+        });
+      });
+
+      document.addEventListener("click", (e) => {
+        const insideSpeed = dom.popupSpeedPanel.contains(e.target) || dom.btnSpeedPopup.contains(e.target);
+        const insideSize = dom.popupBalloonSizePanel.contains(e.target) || dom.btnBalloonSizePopup.contains(e.target);
+        const insideGb = dom.popupGerakBebasPanel.contains(e.target) || dom.btnGerakBebasPopup.contains(e.target);
+        if (!insideSpeed && !insideSize && !insideGb) {
+          closeAllTopPopups(true);
+        }
+      });
+
+      // Modal Hasil Akhir
+      dom.btnPlayAgainSame.addEventListener("click", startNewMatch);
+      dom.btnPlayNewQuestions.addEventListener("click", async () => {
+        dom.finalResultModal.classList.add("hidden");
+        setPanelCollapsed(false);
+        await generateQuestionsWithAI();
+        startNewMatch();
+      });
+      dom.btnBackToSettings.addEventListener("click", () => {
+        dom.finalResultModal.classList.add("hidden");
+        setPanelCollapsed(false);
+      });
+
+      window.addEventListener("resize", resizeGameCanvas);
+      window.addEventListener("beforeunload", stopCameraStream);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      try {
+        state.questions = BANK_SOAL_INFORMATIKA_SMP.slice(0, 10);
+        state.maxTimePerQuestion = 20;
+        state.timeRemaining = 20;
+
+        renderQuestionPreviewList();
+        bindAllEvents();
+        resizeGameCanvas();
+        updateBalloonSizeUI();
+        updateGerakBebasUI();
+        updateTimerBarUI();
+        updateScoreboardUI();
+
+        requestAnimationFrame(gameLoop);
+      } catch (err) {
+        showFriendlyError(`Gagal menginisialisasi game: ${err.message}`);
+      }
+    });
+  </script>
+</body>
+</html>
